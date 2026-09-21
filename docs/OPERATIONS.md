@@ -21,6 +21,14 @@ Environment variables, with no implicit dotenv parsing:
 
 Keep defaults for the demo. No production credentials are needed or read.
 
+## History and incident handoffs
+
+History uses `/api/investigations/page` to load 20 compact summaries at a time. Search matches literal question text, and incident, status, and generation-mode filters combine. Reopening a result fetches the saved full investigation. The original full-record list remains available and capped at 100; paging reaches older runs without that cap. SQLite performs filtering, counting, ordering, and summary projection in one read snapshot. A global listing index is added on startup without rewriting records or changing schema version 1. Literal substring search still scans matching question text; it is intended for this local workbench, not an indexed full-text search service.
+
+Download `/api/incidents/<id>/brief?format=markdown` or `format=json` for an incident handoff. It includes the latest 20 saved investigations and 50 notes from a consistent read snapshot, plus included/total counts and explicit omissions. The export does not call a model or modify the database. It collects saved work without synthesizing a root cause. Notes remain user-authored observations; manually referenced untrusted sources remain labeled untrusted. Run citations preserve saved source snapshots, while note-only references use the currently loaded corpus. The combined source list favors the newest saved snapshot unless a manually referenced source is currently untrusted; full run citations remain available in the JSON.
+
+Handoffs are bounded selections, not backups. Use database backup/restore below to retain all work, and paged history to reopen omitted older investigations. Changing the corpus can affect note references; sources or records outside the current incident are excluded and disclosed in limitations rather than silently crossing incident boundaries.
+
 ## Backup and restore
 
 Run `python3 scripts/backup.py` while the app is running or stopped. It uses SQLite's backup API and runs an integrity check; copying a live WAL database by hand can lose data.

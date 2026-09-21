@@ -5,24 +5,26 @@ import sqlite3
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 from urllib.parse import urlsplit
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 
 from proofline.corpus import Corpus
 from proofline.evaluation import evaluate
-from proofline.export import markdown
+from proofline.export import brief_markdown, incident_brief, markdown
 from proofline.generation import ExtractiveGenerator, LocalGenerator, OllamaGenerator, ProviderError
 from proofline.models import (
     Evaluation,
     EvaluationInput,
+    HistoryQuery,
     IncidentDetail,
     IncidentSummary,
     Investigation,
     InvestigationInput,
+    InvestigationPage,
     Note,
     NoteInput,
 )
@@ -204,6 +206,28 @@ def create_app(
     def get_incident(incident_id: str):
         return incident(incident_id)
 
+    @app.get("/api/incidents/{incident_id}/brief")
+    def export_incident(incident_id: str, format: Literal["markdown", "json"] = "markdown"):
+        selected = incident(incident_id)
+        brief = incident_brief(selected, storage.incident_snapshot(selected.id))
+        if format == "json":
+            content, media_type, suffix = (
+                brief.model_dump_json(indent=2),
+                "application/json",
+                "json",
+            )
+        else:
+            content, media_type, suffix = brief_markdown(brief), "text/markdown", "md"
+        return Response(
+            content,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": (
+                    f'attachment; filename="proofline-{selected.id}-brief.{suffix}"'
+                )
+            },
+        )
+
     @app.post("/api/investigations", response_model=Investigation, status_code=201)
     def create_investigation(body: InvestigationInput):
         selected = incident(body.incident_id)
@@ -221,6 +245,12 @@ def create_app(
         if incident_id is not None:
             incident(incident_id)
         return storage.list("investigation", incident_id, 100)
+
+    @app.get("/api/investigations/page", response_model=InvestigationPage)
+    def page_investigations(query: Annotated[HistoryQuery, Query()]):
+        if query.incident_id is not None:
+            incident(query.incident_id)
+        return storage.investigations_page(query)
 
     @app.get("/api/investigations/{run_id}", response_model=Investigation)
     def get_investigation(run_id: str):

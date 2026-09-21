@@ -103,6 +103,39 @@ class Investigation(Model):
     duration_ms: float = Field(ge=0)
 
 
+class InvestigationSummary(Model):
+    id: Identifier
+    incident_id: Identifier
+    question: str
+    strategy: Strategy
+    mode: Mode
+    status: Literal["answered", "abstained"]
+    answer_preview: Annotated[str, Field(max_length=220)]
+    created_at: Timestamp
+    duration_ms: float = Field(ge=0)
+
+
+class HistoryQuery(Model):
+    limit: int = Field(default=20, ge=1, le=100)
+    offset: int = Field(default=0, ge=0, le=2**63 - 1)
+    q: str = Field(default="", max_length=200)
+    incident_id: Identifier | None = None
+    status: Literal["answered", "abstained"] | None = None
+    mode: Mode | None = None
+
+    @field_validator("q", mode="before")
+    @classmethod
+    def strip_query(cls, value: str) -> str:
+        return value.strip()
+
+
+class InvestigationPage(Model):
+    items: list[InvestigationSummary]
+    total: int = Field(ge=0)
+    limit: int
+    offset: int
+
+
 class InvestigationInput(Model):
     incident_id: Identifier
     question: Annotated[str, Field(min_length=1, max_length=1000)]
@@ -133,6 +166,27 @@ class Note(NoteInput):
     id: Identifier
     incident_id: Identifier
     created_at: Timestamp
+
+
+class CoverageCount(Model):
+    included: int = Field(ge=0)
+    total: int = Field(ge=0)
+
+
+class BriefCoverage(Model):
+    investigations: CoverageCount
+    notes: CoverageCount
+
+
+class IncidentBrief(Model):
+    schema_version: Literal[1] = 1
+    generated_at: Timestamp
+    incident: IncidentSummary
+    coverage: BriefCoverage
+    investigations: list[Investigation]
+    notes: list[Note]
+    sources: list[Evidence]
+    limitations: list[str]
 
 
 class EvaluationInput(Model):
