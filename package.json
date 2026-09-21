@@ -1,0 +1,17 @@
+{
+  "name": "proofline-verification",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:browser": "playwright test",
+    "test:browser:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@axe-core/playwright": "4.13.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

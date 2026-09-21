@@ -1,0 +1,18 @@
+{
+  "event": "private_repository_created",
+  "observed_at": "2026-09-21T04:55:51Z",
+  "repository": "ripleyforge/proofline",
+  "url": "https://github.com/ripleyforge/proofline",
+  "private": true,
+  "default_branch": "main",
+  "initial_commit": "7a20f2ae64bf0b7d72ed0bdcf0dc2b511d7fc274",
+  "owner": "Chase Ripley / Ripley Forge",
+  "environment": "portfolio-source",
+  "authority": "current task 01a0c24c-f805-7123-bf3d-8cbd940fae87",
+  "idempotency_key": "create-ripleyforge-proofline",
+  "cost_controls": {
+    "actions_budget_usd": 0,
+    "prevent_further_usage": true
+  },
+  "rollback": "Revert source with a pull request; disable repository Actions if execution must stop. Repository deletion is not an automatic rollback."
+}
