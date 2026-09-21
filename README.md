@@ -33,6 +33,8 @@ Choose an incident, open a source, and try a suggested question. The [five-minut
 - Search and filter paginated run history; open a full result only when needed.
 - Export a single run or an incident handoff containing saved runs, notes, source references, and explicit coverage counts.
 
+Preview the [searchable run history](docs/images/run-history.png), or follow the [demo walkthrough](docs/DEMO.md).
+
 Citation checks validate source identity, incident scope and exact quoted text. They do **not** prove that model prose follows from a quote or that a suspected cause is correct. The deterministic evaluation suite is not an LLM benchmark. See [evaluation design](docs/EVALUATION.md) and [security boundaries](docs/SECURITY.md).
 
 ## Optional local model
