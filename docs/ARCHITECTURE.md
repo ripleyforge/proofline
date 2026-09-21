@@ -19,6 +19,14 @@ BM25 is a transparent lexical baseline, suitable for a compact technical corpus.
 
 Default extractive engine is not an LLM. Local generation uses installed Ollama on loopback with cloud features disabled. No model gets shell, network, cloud, or remediation tools. Citation checks do not establish entailment. UI/exports disclose those boundaries.
 
+## History and handoff reads
+
+The workspace does not fetch full history during startup. History requests one page of compact summaries; SQLite applies question/incident/status/mode filters, counts matches, and projects the displayed fields before returning them. Opening a run fetches its full immutable result. This reduces initial requests and avoids sending citation bodies for runs the user has not opened. Literal substring search is adequate for this local corpus; no search service is provisioned. A seeded 100-run comparison returned 571,291 bytes through the legacy full-history route and 10,605 bytes for the first 20 summary records. This measures response bodies for different page sizes, not latency or general scalability.
+
+Incident handoff export reads a consistent SQLite snapshot containing the latest 20 investigations and 50 notes for that incident, plus counts of all available records. It includes deduplicated referenced sources and discloses omitted records. It makes no model request and does not synthesize a root cause. Existing per-run exports remain available.
+
+Drafts are separate from saved records. Browser session storage retains question/note drafts by incident for the current tab. A successful note save clears that draft; changing incidents does not move text or source references into another incident.
+
 ## Operational boundaries
 
 Loopback, synthetic data, single user, bounded inputs, no telemetry or secrets. No production availability or tenant-isolation claim. Cloud architecture is a documented future mapping only, with no infrastructure provisioned.

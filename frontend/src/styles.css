@@ -349,7 +349,8 @@ select { padding: 8px 30px 8px 9px; font-size: 0.73rem; }
 .history-page-header { margin-bottom: 18px; }
 .history-page-header h1 { font-size: clamp(1.8rem, 3vw, 2.55rem); }
 .history-filters { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(180px, 0.55fr) minmax(140px, 0.38fr) auto; align-items: end; gap: 10px; margin-bottom: 14px; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-panel); }
-.history-filters > label { display: grid; gap: 5px; color: var(--text-secondary); font-size: 0.68rem; font-weight: 700; }
+.history-filters > label { min-width: 0; display: grid; gap: 5px; color: var(--text-secondary); font-size: 0.68rem; font-weight: 700; }
+.history-filters select { width: 100%; min-width: 0; }
 .history-search-input { min-width: 0; display: flex; align-items: center; gap: 7px; padding: 0 9px; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: var(--r-control); }
 .history-search-input:focus-within { border-color: var(--accent); box-shadow: var(--focus); }
 .history-search-input svg { flex: 0 0 auto; color: var(--text-muted); }

@@ -38,7 +38,7 @@ test('investigation, citations, notes, downloads and history work against the re
   expect(JSON.stringify(exported)).toContain(run.id);
   expect(JSON.stringify(exported)).toContain(run.claims[0].evidence_id);
 
-  await page.getByRole('button', { name: 'Add note', exact: true }).click();
+  if (!await page.getByLabel('Note', { exact: true }).isVisible()) await page.getByRole('button', { name: 'Add note', exact: true }).click();
   const note = `Browser-verified handoff ${Date.now()}: retry configuration needs review.`;
   await page.getByLabel('Note', { exact: true }).fill(note);
   const noteResponse = page.waitForResponse(r => r.url().includes('/notes') && r.request().method() === 'POST');

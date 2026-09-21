@@ -10,6 +10,7 @@ Proofline is for one local user and synthetic examples. It is not authenticated 
 | Local model endpoint | Accidental paid request or data disclosure | Loopback-only endpoint; cloud model rejection; no proxies or redirects; timeout and output cap |
 | Private repository / CI | Leaked credentials or billable execution | Synthetic fixtures; ignored runtime data; secret scans; read-only CI token; pinned actions; existing $0 stop-spend budget |
 | SQLite / exported brief | Local sensitive information | No telemetry; local owner controls files; consistent backup; no notes or DB checked into Git |
+| Browser session drafts | Unfinished text retained in the current tab | Incident-scoped keys; references checked against that incident; clear a note draft after successful save; no remote synchronization |
 
 Quote integrity is weaker than semantic correctness. A model can cite a real quote and draw the wrong conclusion. Known untrusted-note labels are a controlled data-quality boundary, not universal injection detection. The assistant cannot remediate or mutate a real service. Review all generated prose.
 

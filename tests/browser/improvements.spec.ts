@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 test('startup does not download full investigation history', async ({ page }) => {
   const historyRequests: string[] = [];
@@ -23,7 +24,7 @@ test('question and note drafts survive incident switches and reload without cros
   const source = detail.evidence.find((item: { title: string }) => item.title === sourceTitle);
   await page.getByRole('dialog').getByRole('button', { name: 'Reference in note', exact: true }).click();
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Add note', exact: true }).click();
+  if (!await page.getByLabel('Note', { exact: true }).isVisible()) await page.getByRole('button', { name: 'Add note', exact: true }).click();
   await page.getByLabel('Note', { exact: true }).fill(note);
   const queue = page.getByRole('complementary', { name: 'Incident queue' });
   await queue.getByRole('button', { name: new RegExp(incidents[1].title) }).click();
@@ -42,7 +43,7 @@ test('question and note drafts survive incident switches and reload without cros
   expect((await (await savedResponse).json()).evidence_ids).toContain(source.id);
   await expect(page.getByText(note, { exact: true })).toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Add note', exact: true }).click();
+  if (!await page.getByLabel('Note', { exact: true }).isVisible()) await page.getByRole('button', { name: 'Add note', exact: true }).click();
   await expect(page.getByLabel('Note', { exact: true })).toHaveValue('');
 });
 
@@ -74,7 +75,7 @@ test('blocked browser storage keeps the composer usable and explains the draft l
   await question.fill('What changed in payment retries?');
   await expect(question).toHaveValue('What changed in payment retries?');
   await expect(page.getByText(/drafts.*(cannot|unavailable|not.*sav)|browser storage.*unavailable/i).first()).toBeVisible();
-  await page.getByRole('button', { name: 'Add note', exact: true }).click();
+  if (!await page.getByLabel('Note', { exact: true }).isVisible()) await page.getByRole('button', { name: 'Add note', exact: true }).click();
   await page.getByLabel('Note', { exact: true }).fill('This note remains editable.');
   await expect(page.getByLabel('Note', { exact: true })).toHaveValue('This note remains editable.');
 });
@@ -240,4 +241,19 @@ test('a late run reopen cannot pull the user away from their new view', async ({
   await late;
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await expect(page.getByRole('heading', { level: 1, name: 'Evaluation lab' })).toBeVisible();
+});
+
+test('history search and handoff controls remain usable on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/#/history');
+  await expect(page.getByLabel('Search questions', { exact: true })).toBeVisible();
+  await page.getByLabel('Search questions', { exact: true }).fill('Payment');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(page.locator('.history-panel')).toHaveAttribute('aria-busy', 'false');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+  expect(scan.violations.filter(v => v.impact === 'serious' || v.impact === 'critical').map(v => v.id)).toEqual([]);
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Download handoff as Markdown', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

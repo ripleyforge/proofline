@@ -114,7 +114,7 @@ export function HistoryView({ incidents, onReopen }: HistoryViewProps) {
                     <span>{run.strategy === 'focused' ? 'Focused' : 'BM25'}</span>
                   </div>
                   <h2>{run.question}</h2>
-                  <p>{truncate(run.answer_preview || 'No supported answer.', 220)}</p>
+                  <p>{truncate(run.answer_preview || 'No supported answer.', 210)}</p>
                   <div className="history-item-foot"><span>{incidentById.get(run.incident_id)?.title ?? run.incident_id}</span><time dateTime={run.created_at}>{formatDateTime(run.created_at)}</time><span><Clock3 size={13} />{formatDuration(run.duration_ms)}</span></div>
                 </div>
                 <button type="button" className="secondary-button" disabled={openingId !== null} onClick={() => void reopen(run.id)}>{openingId === run.id ? <><LoaderCircle className="spin" size={15} />Opening</> : <>Reopen <ArrowUpRight size={15} /></>}</button>
