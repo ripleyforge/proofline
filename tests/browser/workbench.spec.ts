@@ -22,11 +22,12 @@ test('investigation, citations, notes, downloads and history work against the re
     expect(source.trusted).toBe(true);
     expect(source.body).toContain(claim.quote);
   }
-  await expect(page.getByRole('heading', { name: 'Supported statements' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Statements and sources' })).toBeVisible();
   await page.getByRole('button', { name: `Open ${run.claims[0].evidence_id}`, exact: true }).click();
   const drawer = page.getByRole('dialog');
   await expect(drawer).toBeVisible();
   await expect(drawer).toContainText(run.claims[0].quote);
+  await drawer.getByRole('button', { name: 'Reference in note', exact: true }).click();
   await page.keyboard.press('Escape');
   await expect(drawer).not.toBeVisible();
 
@@ -40,14 +41,16 @@ test('investigation, citations, notes, downloads and history work against the re
   await page.getByRole('button', { name: 'Add note', exact: true }).click();
   const note = `Browser-verified handoff ${Date.now()}: retry configuration needs review.`;
   await page.getByLabel('Note', { exact: true }).fill(note);
+  const noteResponse = page.waitForResponse(r => r.url().includes('/notes') && r.request().method() === 'POST');
   await page.getByRole('button', { name: 'Save note', exact: true }).click();
+  expect((await (await noteResponse).json()).evidence_ids).toContain(run.claims[0].evidence_id);
   await expect(page.getByText(note, { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText(note, { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Run history', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Run history' })).toBeVisible();
   await page.getByRole('button', { name: 'Reopen' }).first().click();
-  await expect(page.getByRole('heading', { name: 'Supported statements' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Statements and sources' })).toBeVisible();
 });
 
 test('unsupported questions abstain and evaluation displays actual case results', async ({ page }) => {
