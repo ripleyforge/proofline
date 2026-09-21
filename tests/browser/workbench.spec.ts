@@ -172,3 +172,28 @@ test('late investigation results stay with their original incident', async ({ pa
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await expect(page.locator('.investigation-result')).toHaveCount(0);
 });
+
+test('signal charts place measurements on their actual time and value axes', async ({ page, request }) => {
+  const incidents = await (await request.get('/api/incidents')).json();
+  const incident = await (await request.get(`/api/incidents/${incidents[0].id}`)).json();
+  const series = incident.metrics[0];
+  await page.goto('/');
+  const chart = page.locator('.metric-chart').first();
+  await expect(chart.locator('.chart-point')).toHaveCount(series.points.length);
+  const points = await chart.locator('.chart-point').evaluateAll(nodes => nodes.map(n => ({ x: Number(n.getAttribute('cx')), y: Number(n.getAttribute('cy')) })));
+  const start = Date.parse(series.points[0].time);
+  const end = Date.parse(series.points.at(-1).time);
+  for (let i = 1; i < points.length - 1; i++) {
+    const shownFraction = (points[i].x - points[0].x) / (points.at(-1)!.x - points[0].x);
+    const elapsedFraction = (Date.parse(series.points[i].time) - start) / (end - start);
+    expect(shownFraction).toBeCloseTo(elapsedFraction, 3);
+  }
+  const ticks = await chart.locator('.chart-axis-label').allTextContents();
+  const grid = await chart.locator('.chart-gridline').evaluateAll(nodes => nodes.map(n => Number(n.getAttribute('y1'))));
+  const top = Math.min(...grid), bottom = Math.max(...grid);
+  const maximum = Number(ticks[0]), minimum = Number(ticks[1]);
+  points.forEach((point, index) => {
+    const displayedValue = maximum - ((point.y - top) / (bottom - top)) * (maximum - minimum);
+    expect(displayedValue).toBeCloseTo(series.points[index].value, 1);
+  });
+});
