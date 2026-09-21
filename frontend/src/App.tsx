@@ -35,6 +35,14 @@ function messageFrom(error: unknown): string {
   return error instanceof Error ? error.message : 'The request failed.'
 }
 
+function mergeIncidentNotes(incidentId: string, current: Note[], incoming: Note[]): Note[] {
+  // Saved notes are append-only. A read started before a save must not hide its result.
+  const byId = new Map([...current, ...incoming]
+    .filter((note) => note.incident_id === incidentId)
+    .map((note) => [note.id, note]))
+  return [...byId.values()].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+}
+
 export function App() {
   const initialDraftsRef = useRef<DraftLoadResult | null>(null)
   if (!initialDraftsRef.current) initialDraftsRef.current = loadIncidentDrafts()
@@ -125,7 +133,7 @@ export function App() {
       const [detail, nextNotes] = await Promise.all([api.incident(id), api.notes(id)])
       if (selectedIncidentRef.current !== id || incidentRequestRef.current !== requestId) return
       setIncident(detail)
-      setNotes(nextNotes)
+      setNotes((current) => mergeIncidentNotes(id, current, nextNotes))
     } catch (error) {
       if (selectedIncidentRef.current !== id || incidentRequestRef.current !== requestId) return
       setIncident(null)
@@ -260,8 +268,8 @@ export function App() {
         ) return current
         return { ...current, [incidentId]: { ...draft, noteBody: '', noteOpen: false, evidenceIds: [] } }
       })
-      if (selectedIncidentRef.current === incidentId && noteRequestRef.current === requestId) {
-        setNotes((current) => [note, ...current])
+      if (selectedIncidentRef.current === incidentId) {
+        setNotes((current) => mergeIncidentNotes(incidentId, current, [note]))
       }
       return true
     } catch (error) {

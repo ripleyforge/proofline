@@ -257,3 +257,48 @@ test('history search and handoff controls remain usable on mobile', async ({ pag
   await expect(page.getByRole('button', { name: 'Download handoff as Markdown', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+for (const holdNoteRead of [false, true]) {
+  test(`a saved note remains visible after returning to its incident${holdNoteRead ? ' with an older read in flight' : ''}`, async ({ page, request }) => {
+    const incidents = await (await request.get('/api/incidents')).json();
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Add note', exact: true }).click();
+    const body = `Delayed saved observation ${Date.now()}`;
+    await page.getByLabel('Note', { exact: true }).fill(body);
+    let releaseSave!: () => void;
+    const saveGate = new Promise<void>(resolve => { releaseSave = resolve; });
+    let saveStarted!: () => void;
+    const saveRequested = new Promise<void>(resolve => { saveStarted = resolve; });
+    let releaseRead!: () => void;
+    const readGate = new Promise<void>(resolve => { releaseRead = resolve; });
+    let readStarted!: () => void;
+    const readRequested = new Promise<void>(resolve => { readStarted = resolve; });
+    await page.route(`**/api/incidents/${incidents[0].id}/notes`, async route => {
+      if (route.request().method() === 'POST') {
+        saveStarted();
+        await saveGate;
+        const actual = await route.fetch();
+        await route.fulfill({ response: actual });
+      } else if (holdNoteRead) {
+        const actual = await route.fetch();
+        readStarted();
+        await readGate;
+        await route.fulfill({ response: actual });
+      } else await route.continue();
+    });
+    await page.getByRole('button', { name: 'Save note', exact: true }).click();
+    await saveRequested;
+    const queue = page.getByRole('complementary', { name: 'Incident queue' });
+    await queue.getByRole('button', { name: new RegExp(incidents[1].title) }).click();
+    await expect(page.getByRole('heading', { level: 1, name: incidents[1].title })).toBeVisible();
+    await queue.getByRole('button', { name: new RegExp(incidents[0].title) }).click();
+    if (holdNoteRead) await readRequested;
+    else await expect(page.getByRole('heading', { level: 1, name: incidents[0].title })).toBeVisible();
+    const savedResponse = page.waitForResponse(r => r.url().includes('/notes') && r.request().method() === 'POST');
+    releaseSave();
+    expect((await savedResponse).status()).toBe(201);
+    if (holdNoteRead) releaseRead();
+    await expect(page.getByText(body, { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Note', { exact: true })).toHaveCount(0);
+  });
+}
