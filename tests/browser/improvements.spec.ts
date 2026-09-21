@@ -37,3 +37,20 @@ test('question and note drafts survive incident switches and reload without cros
   await page.getByRole('button', { name: 'Add note', exact: true }).click();
   await expect(page.getByLabel('Note', { exact: true })).toHaveValue('');
 });
+
+test('evidence dialog contains keyboard focus and returns it to its source', async ({ page }) => {
+  await page.goto('/');
+  const source = page.locator('.evidence-row').first();
+  await source.click();
+  const dialog = page.getByRole('dialog');
+  const close = dialog.getByRole('button', { name: 'Close evidence drawer', exact: true });
+  const reference = dialog.getByRole('button', { name: 'Reference in note', exact: true });
+  await expect(close).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(reference).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(close).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).not.toBeVisible();
+  await expect(source).toBeFocused();
+});
