@@ -1,5 +1,5 @@
 import { BookOpen, Filter, Search, ShieldAlert, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { formatDateTime, formatTime } from '../format'
 import type { Evidence, EvidenceKind } from '../types'
 import { EmptyState, KindBadge, SectionHeading } from './Primitives'
@@ -18,13 +18,22 @@ export function EvidenceCenter({ evidence, requestedEvidenceId, onRequestedEvide
   const [activeKinds, setActiveKinds] = useState<Set<EvidenceKind>>(new Set(kinds))
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Evidence | null>(null)
+  const drawerRef = useRef<HTMLElement>(null)
   const drawerCloseRef = useRef<HTMLButtonElement>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
+
+  const closeDrawer = useCallback(() => {
+    setSelected(null)
+    window.setTimeout(() => triggerRef.current?.focus(), 0)
+  }, [])
 
   useEffect(() => {
     if (!requestedEvidenceId) return
     const match = evidence.find((item) => item.id === requestedEvidenceId)
-    if (match) setSelected(match)
+    if (match) {
+      triggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+      setSelected(match)
+    }
     onRequestedEvidenceHandled()
   }, [requestedEvidenceId, evidence, onRequestedEvidenceHandled])
 
@@ -32,16 +41,27 @@ export function EvidenceCenter({ evidence, requestedEvidenceId, onRequestedEvide
     if (!selected) return
     drawerCloseRef.current?.focus()
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setSelected(null)
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeDrawer()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const focusable = [...(drawerRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [])]
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [selected])
-
-  const closeDrawer = () => {
-    setSelected(null)
-    window.setTimeout(() => triggerRef.current?.focus(), 0)
-  }
+  }, [closeDrawer, selected])
 
   const openEvidence = (item: Evidence, trigger: HTMLElement) => {
     triggerRef.current = trigger
@@ -102,8 +122,8 @@ export function EvidenceCenter({ evidence, requestedEvidenceId, onRequestedEvide
 
       {selected && (
         <div className="drawer-layer" role="presentation">
-          <button className="drawer-scrim" type="button" aria-label="Close evidence drawer" onClick={closeDrawer} />
-          <aside className="evidence-drawer" role="dialog" aria-modal="true" aria-labelledby="evidence-drawer-title">
+          <button className="drawer-scrim" type="button" tabIndex={-1} aria-label="Close evidence drawer" onClick={closeDrawer} />
+          <aside ref={drawerRef} className="evidence-drawer" role="dialog" aria-modal="true" aria-labelledby="evidence-drawer-title">
             <div className="drawer-head">
               <div><KindBadge kind={selected.kind} /><span>{selected.id}</span></div>
               <button ref={drawerCloseRef} className="icon-button" type="button" aria-label="Close evidence drawer" onClick={closeDrawer}><X aria-hidden="true" /></button>
