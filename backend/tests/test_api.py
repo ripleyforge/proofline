@@ -1,3 +1,6 @@
+from dataclasses import replace
+
+import pytest
 from fastapi.testclient import TestClient
 
 from proofline.app import create_app
@@ -45,6 +48,17 @@ def test_local_unavailable_is_explicit_not_fallback(client):
     response = create_run(client, mode="local")
     assert response.status_code == 503 and "detail" in response.json()
     assert client.get("/api/investigations").json() == []
+
+
+def test_markdown_export_preserves_apostrophes_and_escapes_html(client):
+    question = "Customer's retry wasn't charged twice. <script>alert(1)</script> & payment"
+    run = create_run(client, question=question).json()
+    response = client.get(f"/api/investigations/{run['id']}/export?format=markdown")
+    assert response.status_code == 200
+    assert "Customer's retry wasn't charged twice" in response.text
+    assert "&#x27;" not in response.text and "&\\#x27;" not in response.text
+    assert "<script>" not in response.text
+    assert "&lt;script&gt;" in response.text and "&amp; payment" in response.text
 
 
 def test_bad_input_and_cross_incident_note_references(client):
@@ -157,3 +171,49 @@ def test_provider_failure_is_actionable_and_does_not_save_a_run(settings):
         assert response.status_code == 503 and "timed out" in response.json()["detail"]
         assert client.get("/api/investigations").json() == []
         assert create_run(client, mode="extractive").status_code == 201
+
+
+def test_dev_origin_requires_explicit_configuration(settings):
+    headers = {"origin": "http://127.0.0.1:5173"}
+    with TestClient(create_app(settings), base_url="http://127.0.0.1:8100") as client:
+        assert client.post("/api/evaluations", json={}, headers=headers).status_code == 403
+    configured = replace(settings, dev_origin="http://127.0.0.1:5173")
+    with TestClient(create_app(configured), base_url="http://127.0.0.1:8100") as client:
+        assert client.post("/api/evaluations", json={}, headers=headers).status_code == 201
+        for origin in ["http://evil.example:5173", "http://127.0.0.1:5174"]:
+            assert (
+                client.post(
+                    "/api/evaluations",
+                    json={},
+                    headers={
+                        "origin": origin,
+                    },
+                ).status_code
+                == 403
+            )
+        assert (
+            client.post(
+                "/api/evaluations",
+                json={},
+                headers={
+                    **headers,
+                    "sec-fetch-site": "cross-site",
+                },
+            ).status_code
+            == 403
+        )
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://evil.example:5173",
+        "https://127.0.0.1:5173",
+        "http://user@127.0.0.1:5173",
+        "http://127.0.0.1:5173/path",
+        "http://127.0.0.1:5173?query=yes",
+    ],
+)
+def test_invalid_dev_origins_are_rejected_at_startup(settings, origin):
+    with pytest.raises(ValueError, match="dev origin"):
+        create_app(replace(settings, dev_origin=origin))

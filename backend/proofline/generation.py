@@ -76,6 +76,7 @@ class OllamaGenerator:
         self.client.close()
 
     def _request(self, method: str, path: str, payload: dict | None = None) -> dict:
+        # HTTPX timeouts bound socket inactivity, not total request wall-clock duration.
         try:
             with self.client.stream(method, path, json=payload) as response:
                 if response.status_code != 200:

@@ -8,7 +8,7 @@ from proofline.models import Investigation
 
 def literal(text: str) -> str:
     # Exports must not turn evidence text into active HTML or Markdown image/link URLs.
-    return re.sub(r"([\\`*_{}\[\]()#+.!|>~-])", r"\\\1", html.escape(text))
+    return re.sub(r"([\\`*_{}\[\]()#+.!|>~-])", r"\\\1", html.escape(text, quote=False))
 
 
 def markdown(run: Investigation) -> str:
