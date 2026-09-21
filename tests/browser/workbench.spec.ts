@@ -112,7 +112,7 @@ test('desktop and mobile have no serious automated accessibility violations or h
     await page.goto('/');
     await expect(page.getByLabel('Question', { exact: true })).toBeVisible();
     const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
-    expect(scan.violations.filter(v => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
+    expect(scan.violations.filter(v => v.impact === 'serious' || v.impact === 'critical').map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, failure: n.failureSummary })) }))).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
   await page.getByRole('button', { name: 'Open navigation', exact: true }).click();

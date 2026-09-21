@@ -74,7 +74,7 @@ bash scripts/check.sh
 
 The gate runs Python lint/tests, frontend typecheck/build, a tracked-text credential guard, and real-browser workflows. GitHub Actions runs the same gate and verifies the delivery bundle on Linux. Actions use an existing included allowance under a verified $0 stop-spend budget; no deployment, cache, or artifact upload is configured.
 
-For development, run `python3 scripts/serve.py --dev` and `npm --prefix frontend run dev` in separate terminals. The Vite server proxies the API; the packaged app uses one origin.
+For development, run `python3 scripts/serve.py --dev` and `npm --prefix frontend run dev` in separate terminals. Open the development UI at http://127.0.0.1:5173. The API dev launcher explicitly allows that origin; the packaged app uses one origin.
 
 ```text
 backend/proofline/   domain, retrieval, providers, persistence, HTTP

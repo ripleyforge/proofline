@@ -17,6 +17,7 @@ Environment variables, with no implicit dotenv parsing:
 | PROOFLINE_FRONTEND_DIST | frontend/dist | Built interface |
 | PROOFLINE_OLLAMA_URL | http://127.0.0.1:11435 | Loopback-only local provider |
 | PROOFLINE_OLLAMA_MODEL | empty | Explicitly enable installed local model |
+| PROOFLINE_DEV_ORIGIN | unset | One explicit loopback dev UI origin; `serve.py --dev` sets http://127.0.0.1:5173 |
 
 Keep defaults for the demo. No production credentials are needed or read.
 

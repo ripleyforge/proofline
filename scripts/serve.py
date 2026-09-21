@@ -25,6 +25,7 @@ def main():
     env.setdefault("PROOFLINE_DB_PATH", str(ROOT / ".local/proofline.sqlite3"))
     command = ["uv", "run", "--project", str(ROOT / "backend"), "--frozen", "--no-sync", "uvicorn", "proofline.app:create_app", "--factory", "--host", "127.0.0.1", "--port", str(args.port)]
     if args.dev:
+        env.setdefault("PROOFLINE_DEV_ORIGIN", "http://127.0.0.1:5173")
         command += ["--reload", "--reload-dir", str(ROOT / "backend/proofline")]
     print(f"Proofline: http://127.0.0.1:{args.port} (Ctrl+C to stop)", flush=True)
     try:
