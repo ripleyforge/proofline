@@ -22,8 +22,10 @@ interface InvestigationPanelProps {
   suggestedQuestions: string[]
   config: Config
   currentRun: Investigation | null
+  question: string
   isRunning: boolean
   error: string | null
+  onQuestionChange: (question: string) => void
   onAsk: (input: { question: string; strategy: RetrievalStrategy; mode: GenerationMode }) => Promise<void>
   onOpenEvidence: (id: string) => void
 }
@@ -33,12 +35,13 @@ export function InvestigationPanel({
   suggestedQuestions,
   config,
   currentRun,
+  question,
   isRunning,
   error,
+  onQuestionChange,
   onAsk,
   onOpenEvidence,
 }: InvestigationPanelProps) {
-  const [question, setQuestion] = useState('')
   const [strategy, setStrategy] = useState<RetrievalStrategy>('focused')
   const [mode, setMode] = useState<GenerationMode>('extractive')
   const [exportError, setExportError] = useState<string | null>(null)
@@ -76,7 +79,7 @@ export function InvestigationPanel({
         <textarea
           id="investigation-question"
           value={question}
-          onChange={(event) => setQuestion(event.target.value)}
+          onChange={(event) => onQuestionChange(event.target.value)}
           maxLength={config.limits.question_chars}
           rows={4}
           placeholder="What changed before the first failure?"
@@ -86,7 +89,7 @@ export function InvestigationPanel({
         {!!suggestedQuestions.length && (
           <div className="suggestions">
             <span>Suggested questions</span>
-            {suggestedQuestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => setQuestion(suggestion)}>{suggestion}</button>)}
+            {suggestedQuestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => onQuestionChange(suggestion)}>{suggestion}</button>)}
           </div>
         )}
 
@@ -147,6 +150,7 @@ function InvestigationResult({ run, onOpenEvidence, onExport, exportError }: {
         <div><span className={`result-status ${run.status}`}>{run.status === 'answered' ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}{run.status}</span></div>
         <span className="run-duration"><Clock3 size={14} />{formatDuration(run.duration_ms)}</span>
       </div>
+      <div className="result-question"><span>Saved question</span><h3>{run.question}</h3></div>
       <div className="mode-disclosure">
         <strong>{run.mode === 'extractive' ? 'Evidence extracts' : 'Local model output'}</strong>
         <span>{run.strategy === 'focused' ? 'Focused retrieval' : 'BM25 baseline'}</span>

@@ -64,6 +64,27 @@ export interface Investigation {
   duration_ms: number
 }
 
+export type InvestigationStatus = Investigation['status']
+
+export interface InvestigationSummary {
+  id: string
+  incident_id: string
+  question: string
+  strategy: RetrievalStrategy
+  mode: GenerationMode
+  status: InvestigationStatus
+  answer_preview: string
+  created_at: string
+  duration_ms: number
+}
+
+export interface InvestigationPage {
+  items: InvestigationSummary[]
+  total: number
+  limit: number
+  offset: number
+}
+
 export interface Note {
   id: string
   incident_id: string

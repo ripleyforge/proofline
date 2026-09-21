@@ -19,7 +19,11 @@ Extractive mode uses the quote as text. Generated prose is explicitly model outp
 
 `Investigation`: `{id,incident_id,question,strategy,mode,status,answer,claims,citations,warnings,trace,created_at,duration_ms}`. strategy is `bm25|focused`; mode is `extractive|local`; status is `answered|abstained`; citations is Evidence[]; warnings is string[]; trace is `[{step,detail,duration_ms}]`. Persist all fields.
 
+`InvestigationSummary`: `{id,incident_id,question,strategy,mode,status,answer_preview,created_at,duration_ms}`. `answer_preview` is the first 220 characters of the saved answer. Summaries omit claims, citations, trace, and warnings; reopening fetches the full investigation.
+
 `Note`: `{id,incident_id,body,evidence_ids:string[],created_at}`.
+
+`IncidentBrief`: `{schema_version:1,generated_at,incident,coverage,investigations,notes,sources,limitations}`. `incident` is IncidentSummary; `coverage` is `{investigations:{included,total},notes:{included,total}}`; investigations are full Investigation records, notes are Note records, sources are deduplicated Evidence records, and limitations are strings. Includes at most the latest 20 investigations and 50 notes, with explicit omission counts. All records and references are scoped to the requested incident. Manually referenced untrusted sources retain `trusted:false`.
 
 `Evaluation`: `{id,strategy,passed,total,metrics,cases,created_at,duration_ms}`.
 metrics is `{retrieval_recall,citation_validity,abstention_accuracy,injection_resistance}`, each 0..1. cases is `[{id,name,category,passed,detail,duration_ms}]`.
@@ -32,10 +36,12 @@ metrics is `{retrieval_recall,citation_validity,abstention_accuracy,injection_re
 - GET `/incidents/{id}` -> IncidentDetail.
 - POST `/investigations`, body `{incident_id,question,strategy:"focused",mode:"extractive"}` -> Investigation, 201. Input lengths bounded; unavailable local mode returns 503, never silently pretends model inference occurred.
 - GET `/investigations?incident_id=...` -> Investigation[] newest first, max 100.
+- GET `/investigations/page?limit=20&offset=0&q=...&incident_id=...&status=...&mode=...` -> `{items:InvestigationSummary[],total,limit,offset}`. Every filter is optional; defaults are limit 20 and offset 0. Limit is 1..100; offset is a nonnegative signed 64-bit integer. `q` is stripped, maximum 200 characters after stripping, and matches a case-insensitive literal substring of the question only (Unicode case folding; `%`, `_`, backslashes, and quotes are literal). Status is `answered|abstained`; mode is `extractive|local`. Filters combine with AND. Unknown incidents return 404, invalid inputs 422, and an offset past the last result returns an empty items array with the matching total. SQLite filters, counts, and projects the page from one read snapshot; order is created_at descending, then insertion order descending for ties.
 - GET `/investigations/{id}` -> Investigation.
 - GET `/investigations/{id}/export?format=markdown|json` -> downloadable file.
 - GET `/incidents/{id}/notes` -> Note[].
 - POST `/incidents/{id}/notes`, body `{body,evidence_ids:[]}` -> Note, 201.
+- GET `/incidents/{id}/brief?format=markdown|json` -> downloadable incident handoff, default Markdown. JSON follows IncidentBrief. Markdown contains incident context, coverage and omissions, saved questions/observations with run IDs/times/modes, claims and exact quotes, notes/references, sources, and limitations. This read-only route neither invokes a model nor saves a new record. It does not synthesize a root cause. User content is escaped in Markdown; JSON preserves content as data. Unknown incidents return 404; unsupported formats return 422.
 - POST `/evaluations`, body `{strategy:"focused"}` -> Evaluation, 201. Fully local, deterministic fixtures; never invokes a model. A score is not a model benchmark.
 - GET `/evaluations` -> Evaluation[] newest first, max 20.
 

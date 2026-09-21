@@ -45,3 +45,20 @@ The [independent adversarial review](reviews/2026-09-21-backend-delivery.md) req
 The organization had an existing $0 Actions budget with stop-spend enabled, verified before execution. No budget was raised, paid runner selected, cache/artifact storage configured, cloud infrastructure provisioned, or paid API used. Repository and branch-protection observations are in `operations/`.
 
 Known limits: single local user; synthetic evidence; lexical heuristics; quote integrity rather than entailment; an Ollama inactivity timeout rather than a strict total deadline. Two upstream Starlette/AnyIO deprecation warnings occurred in tests without failures. The development-only origin setting is disabled in the packaged default.
+
+## Investigation handoff improvement pass — 2026-09-21
+
+The implementation candidate is `17c1239c4494a9c218cc9581e0edab3516b664f1`. Subsequent documentation commits record these observations without changing the reviewed application behavior.
+
+- **98 backend tests** and **six delivery tests** passed on the integrated improvement implementation. The 22 added backend tests cover page boundaries, literal Unicode search, filters, summary projection, legacy compatibility, index migration, handoff coverage, incident isolation, note-only sources, trust labels and Markdown escaping. Ruff, ESLint, TypeScript and the production build passed.
+- **19 browser tests passed together** after correcting mobile history filter overflow. Two additional regression variants reproduced a note-save/navigation race before its repair, then passed with the existing draft-persistence and full investigation workflow tests on `17c1239`. The browser suite now contains **21 tests**. GitHub CI runs that complete suite on each final candidate.
+- Added browser coverage includes drafts across incident switches/reloads, storage failure, incident-scoped references, preserving edits during a save, delayed history/reopen responses, history paging/search, handoff downloads, keyboard focus containment and restoration, and mobile history controls.
+- Gitleaks scanned 37 commits / approximately 993 KB of history through `17c1239` and reported no leaks. The tracked-text guard passed; documentation images were visually inspected separately. Neither check proves that every possible secret is absent.
+
+With 100 seeded synthetic investigations, the legacy full-history response measured **571,291 bytes**, while the first page of 20 summary records measured **10,605 bytes** and retained a total count of 100. This is a response-body comparison for one fixture set, not a latency benchmark or a claim of indexed full-text search. The workspace no longer loads saved history on startup.
+
+Desktop workspace and history screenshots were refreshed. Browser checks exercised 390-pixel history controls with no document overflow, plus the existing desktop/mobile serious and critical axe checks. These observations are not a WCAG conformance claim.
+
+Before restarting the local demo with the additive SQLite index, a consistent project-local database backup passed integrity checking. The handoff endpoints perform no inference or writes and disclose included/total counts when the latest 20 runs or 50 notes omit older records. Browser drafts remain in the current tab's session storage, with an explicit in-memory fallback if storage is unavailable.
+
+The [independent improvement review](reviews/2026-09-21-improvements.md) covers backend behavior and the integrated interface. The reviewed note race and its affected-path recheck are recorded there. Optional model code is unchanged; the earlier local inference observation remains historical evidence, and no additional model or cloud invocation was needed for this pass.

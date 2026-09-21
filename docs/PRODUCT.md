@@ -7,15 +7,15 @@ An engineer taking over an incident needs to distinguish what happened, what is 
 Primary user: an on-call engineer investigating a synthetic commerce service.
 Secondary user: a solutions engineer demonstrating failure behavior and tradeoffs.
 
-## Complete v1 scope
+## Product scope
 
 1. Open one of three seeded incidents, inspect a service dependency map, time-series signals and an ordered timeline of changes, logs, metrics, and runbooks.
 2. Ask a suggested or custom question. Compare plain BM25 retrieval with focused retrieval that incorporates explicit incident context and evidence kind.
 3. Get deterministic extracts immediately or opt into installed local Ollama generation. See the actual mode, trace, latency, warnings, and cited excerpts.
 4. Reject unknown citations and altered quotes. Abstain when evidence is weak. Exclude known untrusted notes from generation; adversarial tests show limits.
-5. Save investigation notes with evidence references and reopen persisted runs.
+5. Keep incident-specific drafts across switches/reloads, save notes with evidence references, and find older runs through filtered, paginated history.
 6. Run a real evaluation suite and inspect each pass/failure, not just a score.
-7. Export an incident brief with sources, provenance and limitations in Markdown or JSON. Restart the app and retain the work in a local SQLite database.
+7. Export individual runs or an incident handoff in Markdown or JSON. Handoffs include saved notes, source provenance, limitations and explicit inclusion/omission counts. Restart the app and retain saved work in SQLite.
 
 No real incident integrations, autonomous remediation, multi-user authentication, production-grade security claim, remote model API, or paid service is in v1.
 
