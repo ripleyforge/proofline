@@ -59,6 +59,9 @@ class Settings:
         default_factory=lambda: os.getenv("PROOFLINE_OLLAMA_URL", "http://127.0.0.1:11435")
     )
     ollama_model: str = field(default_factory=lambda: os.getenv("PROOFLINE_OLLAMA_MODEL", ""))
+    dev_origin: str | None = field(
+        default_factory=lambda: os.getenv("PROOFLINE_DEV_ORIGIN") or None
+    )
 
 
 def _safe_host(host: str) -> bool:
@@ -85,6 +88,18 @@ def create_app(
     store: Store | None = None,
 ) -> FastAPI:
     settings = settings or Settings()
+    if settings.dev_origin is not None:
+        origin = urlsplit(settings.dev_origin)
+        if (
+            origin.scheme != "http"
+            or not _safe_host(origin.netloc)
+            or origin.path
+            or origin.query
+            or origin.fragment
+        ):
+            raise ValueError(
+                "dev origin must be an HTTP loopback origin without a path or credentials"
+            )
     corpus = Corpus.load(settings.corpus_path)
     fixtures = corpus.load_evaluations(settings.evaluation_path)
     storage = store or SQLiteStore(settings.db_path)
@@ -110,7 +125,8 @@ def create_app(
             )
         if request.method not in {"GET", "HEAD", "OPTIONS"}:
             origin = request.headers.get("origin")
-            if origin and origin != f"http://{host}":
+            allowed_origins = {f"http://{host}", settings.dev_origin}
+            if origin and origin not in allowed_origins:
                 return JSONResponse(
                     {"detail": "Cross-origin writes are not allowed."}, status_code=403
                 )
