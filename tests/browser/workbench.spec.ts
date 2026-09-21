@@ -119,3 +119,56 @@ test('desktop and mobile have no serious automated accessibility violations or h
   await page.getByRole('button', { name: 'Evaluation lab', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Evaluation lab' })).toBeVisible();
 });
+
+test('late incident responses cannot overwrite the current selection', async ({ page, request }) => {
+  const incidents = await (await request.get('/api/incidents')).json();
+  await page.goto('/');
+  await expect(page.getByLabel('Question', { exact: true })).toBeVisible();
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  let started!: () => void;
+  const requested = new Promise<void>(resolve => { started = resolve; });
+  await page.route(`**/api/incidents/${incidents[1].id}`, async route => {
+    const actual = await route.fetch();
+    started();
+    await gate;
+    await route.fulfill({ response: actual });
+  });
+  const queue = page.getByRole('complementary', { name: 'Incident queue' });
+  await queue.getByRole('button', { name: new RegExp(incidents[1].title) }).click();
+  await requested;
+  await queue.getByRole('button', { name: new RegExp(incidents[2].title) }).click();
+  await expect(page.getByRole('heading', { level: 1, name: incidents[2].title })).toBeVisible();
+  const lateResponse = page.waitForResponse(r => r.url().endsWith(`/api/incidents/${incidents[1].id}`));
+  release();
+  await lateResponse;
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await expect(page.getByRole('heading', { level: 1, name: incidents[2].title })).toBeVisible();
+});
+
+test('late investigation results stay with their original incident', async ({ page, request }) => {
+  const incidents = await (await request.get('/api/incidents')).json();
+  const original = await (await request.get(`/api/incidents/${incidents[0].id}`)).json();
+  await page.goto('/');
+  await page.getByLabel('Question', { exact: true }).fill(original.suggested_questions[0]);
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  let started!: () => void;
+  const requested = new Promise<void>(resolve => { started = resolve; });
+  await page.route('**/api/investigations', async route => {
+    if (route.request().method() !== 'POST') { await route.continue(); return; }
+    const actual = await route.fetch();
+    started();
+    await gate;
+    await route.fulfill({ response: actual });
+  });
+  await page.getByRole('button', { name: 'Run investigation', exact: true }).click();
+  await requested;
+  await page.getByRole('complementary', { name: 'Incident queue' }).getByRole('button', { name: new RegExp(incidents[1].title) }).click();
+  await expect(page.getByRole('heading', { level: 1, name: incidents[1].title })).toBeVisible();
+  const lateResponse = page.waitForResponse(r => r.url().endsWith('/api/investigations') && r.request().method() === 'POST');
+  release();
+  await lateResponse;
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await expect(page.locator('.investigation-result')).toHaveCount(0);
+});
