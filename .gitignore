@@ -5,3 +5,19 @@
 
 # macOS
 .DS_Store
+
+# build, runtime, isolated work
+.local/
+.worktrees/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+node_modules/
+dist/
+playwright-report/
+test-results/
+*.sqlite*
+*.log
