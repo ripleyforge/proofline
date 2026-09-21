@@ -1,5 +1,5 @@
-import { AlertTriangle, Clock3, Database, Network, Radio, ShieldCheck } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { AlertTriangle, Clock3, Database, Network, Radio, SearchCheck, ShieldCheck } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from './api'
 import { EvidenceCenter } from './components/EvidenceCenter'
 import { EvaluationView } from './components/EvaluationView'
@@ -57,6 +57,11 @@ export function App() {
   const [investigationError, setInvestigationError] = useState<string | null>(null)
   const [evaluationError, setEvaluationError] = useState<string | null>(null)
   const [noteError, setNoteError] = useState<string | null>(null)
+  const [historyError, setHistoryError] = useState<string | null>(null)
+  const selectedIncidentRef = useRef<string | null>(null)
+  const incidentRequestRef = useRef(0)
+  const investigationRequestRef = useRef(0)
+  const noteRequestRef = useRef(0)
 
   const loadInitial = useCallback(async () => {
     setBootLoading(true)
@@ -65,7 +70,11 @@ export function App() {
       const [nextConfig, nextIncidents] = await Promise.all([api.config(), api.incidents()])
       setConfig(nextConfig)
       setIncidents(nextIncidents)
-      setSelectedIncidentId((current) => current && nextIncidents.some((item) => item.id === current) ? current : nextIncidents[0]?.id ?? null)
+      setSelectedIncidentId((current) => {
+        const next = current && nextIncidents.some((item) => item.id === current) ? current : nextIncidents[0]?.id ?? null
+        selectedIncidentRef.current = next
+        return next
+      })
     } catch (error) {
       setBootError(messageFrom(error))
     } finally {
@@ -87,18 +96,21 @@ export function App() {
   }
 
   const loadIncident = useCallback(async (id: string) => {
+    const requestId = ++incidentRequestRef.current
     setIncidentLoading(true)
     setIncidentError(null)
     try {
       const [detail, nextNotes] = await Promise.all([api.incident(id), api.notes(id)])
+      if (selectedIncidentRef.current !== id || incidentRequestRef.current !== requestId) return
       setIncident(detail)
       setNotes(nextNotes)
     } catch (error) {
+      if (selectedIncidentRef.current !== id || incidentRequestRef.current !== requestId) return
       setIncident(null)
       setNotes([])
       setIncidentError(messageFrom(error))
     } finally {
-      setIncidentLoading(false)
+      if (selectedIncidentRef.current === id && incidentRequestRef.current === requestId) setIncidentLoading(false)
     }
   }, [])
 
@@ -110,11 +122,14 @@ export function App() {
   const loadHistory = useCallback(async () => {
     if (!incidents.length) return
     setHistoryLoading(true)
+    setHistoryError(null)
     try {
       const groups = await Promise.all(incidents.map((item) => api.investigations(item.id)))
-      setHistory(groups.flat().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
-    } catch {
-      setHistory([])
+      const loaded = groups.flat()
+      const loadedIds = new Set(loaded.map((run) => run.id))
+      setHistory((current) => [...loaded, ...current.filter((run) => !loadedIds.has(run.id))].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
+    } catch (error) {
+      setHistoryError(messageFrom(error))
     } finally {
       setHistoryLoading(false)
     }
@@ -137,24 +152,37 @@ export function App() {
 
   const selectIncident = (id: string) => {
     if (id === selectedIncidentId) return
+    selectedIncidentRef.current = id
+    incidentRequestRef.current += 1
+    investigationRequestRef.current += 1
+    noteRequestRef.current += 1
     setSelectedIncidentId(id)
+    setIncident(null)
+    setNotes([])
     setCurrentRun(null)
     setNoteEvidenceIds([])
     setRequestedEvidenceId(null)
+    setIncidentLoading(true)
+    setInvestigationRunning(false)
+    setInvestigationError(null)
+    setNoteSaving(false)
+    setNoteError(null)
   }
 
   const runInvestigation = async (input: { question: string; strategy: RetrievalStrategy; mode: GenerationMode }) => {
-    if (!selectedIncidentId) return
+    const incidentId = selectedIncidentRef.current
+    if (!incidentId) return
+    const requestId = ++investigationRequestRef.current
     setInvestigationRunning(true)
     setInvestigationError(null)
     try {
-      const result = await api.createInvestigation({ incident_id: selectedIncidentId, ...input })
-      setCurrentRun(result)
+      const result = await api.createInvestigation({ incident_id: incidentId, ...input })
       setHistory((current) => [result, ...current.filter((item) => item.id !== result.id)])
+      if (selectedIncidentRef.current === incidentId && investigationRequestRef.current === requestId) setCurrentRun(result)
     } catch (error) {
-      setInvestigationError(messageFrom(error))
+      if (selectedIncidentRef.current === incidentId && investigationRequestRef.current === requestId) setInvestigationError(messageFrom(error))
     } finally {
-      setInvestigationRunning(false)
+      if (selectedIncidentRef.current === incidentId && investigationRequestRef.current === requestId) setInvestigationRunning(false)
     }
   }
 
@@ -176,27 +204,52 @@ export function App() {
   }
 
   const saveNote = async (body: string): Promise<boolean> => {
-    if (!selectedIncidentId) return false
+    const incidentId = selectedIncidentRef.current
+    if (!incidentId) return false
+    const requestId = ++noteRequestRef.current
+    const evidenceIds = [...noteEvidenceIds]
     setNoteSaving(true)
     setNoteError(null)
     try {
-      const note = await api.createNote(selectedIncidentId, { body, evidence_ids: noteEvidenceIds })
+      const note = await api.createNote(incidentId, { body, evidence_ids: evidenceIds })
+      if (selectedIncidentRef.current !== incidentId || noteRequestRef.current !== requestId) return false
       setNotes((current) => [note, ...current])
       setNoteEvidenceIds([])
       return true
     } catch (error) {
-      setNoteError(messageFrom(error))
+      if (selectedIncidentRef.current === incidentId && noteRequestRef.current === requestId) setNoteError(messageFrom(error))
       return false
     } finally {
-      setNoteSaving(false)
+      if (selectedIncidentRef.current === incidentId && noteRequestRef.current === requestId) setNoteSaving(false)
     }
   }
 
   const reopenRun = (run: Investigation) => {
+    const sameSelection = selectedIncidentRef.current === run.incident_id
+    const sameIncidentLoaded = incident?.id === run.incident_id
+    selectedIncidentRef.current = run.incident_id
+    incidentRequestRef.current += 1
+    investigationRequestRef.current += 1
+    noteRequestRef.current += 1
     setSelectedIncidentId(run.incident_id)
+    if (!sameIncidentLoaded) {
+      setIncident(null)
+      setNotes([])
+      setIncidentLoading(true)
+      if (sameSelection) void loadIncident(run.incident_id)
+    }
     setCurrentRun(run)
     setNoteEvidenceIds([])
+    setRequestedEvidenceId(null)
+    setInvestigationRunning(false)
+    setInvestigationError(null)
+    setNoteSaving(false)
+    setNoteError(null)
     changeView('workspace')
+  }
+
+  const focusInvestigation = () => {
+    document.getElementById('investigation-question')?.focus()
   }
 
   if (bootLoading) return <div className="boot-screen"><div className="boot-brand">Proofline</div><LoadingState label="Connecting to the local workbench" /></div>
@@ -210,7 +263,7 @@ export function App() {
           <div className="workspace-main">
             {incidentLoading ? <LoadingState label="Loading incident evidence" /> : incidentError ? <ErrorState message={incidentError} onRetry={selectedIncidentId ? () => void loadIncident(selectedIncidentId) : undefined} /> : incident ? (
               <>
-                <IncidentHeader incident={incident} />
+                <IncidentHeader incident={incident} onInvestigate={focusInvestigation} />
                 <div className="overview-grid"><MetricCharts metrics={incident.metrics} /><ServiceMap services={incident.services} /></div>
                 <EvidenceCenter
                   evidence={incident.evidence}
@@ -237,7 +290,7 @@ export function App() {
             incidentTitle={incident.title}
             suggestedQuestions={incident.suggested_questions}
             config={config}
-            currentRun={currentRun}
+            currentRun={currentRun?.incident_id === incident.id ? currentRun : null}
             isRunning={investigationRunning}
             error={investigationError}
             onAsk={runInvestigation}
@@ -246,12 +299,12 @@ export function App() {
         </div>
       )}
       {view === 'evaluations' && <EvaluationView evaluations={evaluations} isLoading={evaluationLoading} isRunning={evaluationRunning} error={evaluationError} onRun={runEvaluation} />}
-      {view === 'history' && <HistoryView investigations={history} incidents={incidents} isLoading={historyLoading} onReopen={reopenRun} />}
+      {view === 'history' && <HistoryView investigations={history} incidents={incidents} isLoading={historyLoading} error={historyError} onRetry={() => void loadHistory()} onReopen={reopenRun} />}
     </Shell>
   )
 }
 
-function IncidentHeader({ incident }: { incident: IncidentDetail }) {
+function IncidentHeader({ incident, onInvestigate }: { incident: IncidentDetail; onInvestigate: () => void }) {
   return (
     <header className="incident-header">
       <div className="incident-header-top">
@@ -266,6 +319,7 @@ function IncidentHeader({ incident }: { incident: IncidentDetail }) {
         <div><Radio size={17} aria-hidden="true" /><span>Signals</span><strong>{incident.metrics.length}</strong></div>
         <div><ShieldCheck size={17} aria-hidden="true" /><span>Trusted</span><strong>{incident.evidence.filter((item) => item.trusted).length}</strong></div>
       </div>
+      <button type="button" className="mobile-investigate-jump" onClick={onInvestigate}><SearchCheck size={16} aria-hidden="true" />Investigate this incident</button>
       {!!incident.evidence.some((item) => !item.trusted) && <div className="header-warning"><AlertTriangle size={15} aria-hidden="true" />Untrusted imported evidence is visible for inspection and excluded from answer context.</div>}
       {!!incident.tags.length && <div className="tag-list" aria-label="Incident tags">{incident.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>}
     </header>
