@@ -6,6 +6,8 @@ Proofline is a local incident investigation workspace for a fictional commerce o
 
 All scenarios are synthetic. The complete core workflow needs no API key, model, account, or cloud service. Optional local AI uses an installed Ollama model; the default evidence-extraction mode is deterministic and is labeled accordingly.
 
+![Proofline incident workspace with synthetic service signals and evidence](docs/images/workspace.png)
+
 ## Start the demo
 
 Requires **Python 3.12+**, **uv**, and **Node.js 22+**. Dependency installation needs internet access; normal extractive use after setup does not.
@@ -93,4 +95,4 @@ After committing and passing checks, `python3 scripts/package.py` creates a chec
 
 The demo is single-user and loopback-only. Do not expose it through a tunnel or reverse proxy. A [future AWS mapping](docs/CLOUD-DESIGN.md) explains what would change for an approved hosted system; it is a design exercise, not a deployed architecture.
 
-[Portfolio and interview guide](docs/PORTFOLIO.md) · [Contributing](CONTRIBUTING.md)
+[Verification results](docs/VERIFICATION.md) · [Portfolio and interview guide](docs/PORTFOLIO.md) · [Contributing](CONTRIBUTING.md)
