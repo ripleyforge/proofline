@@ -41,6 +41,7 @@ export function ServiceMap({ services }: { services: ServiceNode[] }) {
   if (!services.length) return <EmptyState title="No dependency data" message="No services are mapped for this incident." />
   const nodes = positionNodes(services)
   const byId = new Map(nodes.map((node) => [node.id, node]))
+  const labelById = new Map(services.map((node) => [node.id, node.label]))
   return (
     <section className="panel service-panel">
       <SectionHeading title="Service path" description="Recorded upstream dependencies and current incident state." />
@@ -74,7 +75,12 @@ export function ServiceMap({ services }: { services: ServiceNode[] }) {
         </svg>
       </div>
       <div className="service-list" aria-label="Service statuses">
-        {services.map((service) => <div key={service.id}><span>{service.label}</span><ServiceStatusBadge status={service.status} /></div>)}
+        {services.map((service) => (
+          <div key={service.id}>
+            <span><strong>{service.label}</strong><small>{service.upstream.length ? `Depends on ${service.upstream.map((id) => labelById.get(id) ?? id).join(', ')}` : 'No recorded upstream dependency'}</small></span>
+            <ServiceStatusBadge status={service.status} />
+          </div>
+        ))}
       </div>
     </section>
   )

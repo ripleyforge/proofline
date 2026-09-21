@@ -2,16 +2,18 @@ import { ArrowUpRight, CheckCircle2, Clock3, History, SearchX } from 'lucide-rea
 import { useMemo, useState } from 'react'
 import { formatDateTime, formatDuration, truncate } from '../format'
 import type { IncidentSummary, Investigation } from '../types'
-import { EmptyState, SectionHeading } from './Primitives'
+import { EmptyState, ErrorState, SectionHeading } from './Primitives'
 
 interface HistoryViewProps {
   investigations: Investigation[]
   incidents: IncidentSummary[]
   isLoading: boolean
+  error: string | null
+  onRetry: () => void
   onReopen: (run: Investigation) => void
 }
 
-export function HistoryView({ investigations, incidents, isLoading, onReopen }: HistoryViewProps) {
+export function HistoryView({ investigations, incidents, isLoading, error, onRetry, onReopen }: HistoryViewProps) {
   const [incidentFilter, setIncidentFilter] = useState('all')
   const filtered = useMemo(() => incidentFilter === 'all' ? investigations : investigations.filter((run) => run.incident_id === incidentFilter), [incidentFilter, investigations])
   const incidentById = new Map(incidents.map((incident) => [incident.id, incident]))
@@ -24,7 +26,8 @@ export function HistoryView({ investigations, incidents, isLoading, onReopen }: 
       </header>
       <section className="panel history-panel">
         <SectionHeading title="Saved runs" description={isLoading ? 'Loading persisted runs…' : `${filtered.length} ${filtered.length === 1 ? 'run' : 'runs'} shown`} />
-        {filtered.length ? (
+        {error && investigations.length > 0 && <div className="inline-load-error" role="alert"><span>{error}</span><button type="button" className="secondary-button" onClick={onRetry}>Retry</button></div>}
+        {error && !investigations.length ? <ErrorState title="Could not load run history" message={error} onRetry={onRetry} /> : filtered.length ? (
           <div className="history-list">
             {filtered.map((run) => (
               <article key={run.id} className="history-item">
