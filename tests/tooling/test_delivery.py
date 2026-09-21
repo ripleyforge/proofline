@@ -170,6 +170,19 @@ class DeliveryToolTests(unittest.TestCase):
         checksum = second.with_suffix(second.suffix + ".sha256").read_text()
         self.assertEqual(checksum, f"{archive_digest}  {second.name}\n")
 
+    def test_package_preserves_executable_launchers(self) -> None:
+        repository = self.make_repository()
+        launcher = repository / "Proofline.command"
+        launcher.write_text("#!/bin/sh\necho Proofline\n")
+        launcher.chmod(0o755)
+        self.git(repository, "add", "Proofline.command")
+        self.git(repository, "commit", "--quiet", "-m", "add launcher")
+        package = load_package_module()
+        package.ROOT = repository
+        with tarfile.open(package.build(), "r:gz") as archive:
+            self.assertEqual(archive.getmember("proofline/Proofline.command").mode, 0o755)
+            self.assertEqual(archive.getmember("proofline/src/app.py").mode, 0o644)
+
     def test_package_rejects_dirty_tracked_source(self) -> None:
         repository = self.make_repository()
         (repository / "src" / "app.py").write_text("print('dirty source')\n")

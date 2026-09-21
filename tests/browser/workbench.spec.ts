@@ -107,7 +107,7 @@ test('API errors are actionable and never replaced with fixture results', async 
 });
 
 test('desktop and mobile have no serious automated accessibility violations or horizontal overflow', async ({ page }) => {
-  for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
+  for (const viewport of [{ width: 1440, height: 1000 }, { width: 1190, height: 900 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/');
     await expect(page.getByLabel('Question', { exact: true })).toBeVisible();

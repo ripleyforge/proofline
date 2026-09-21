@@ -44,7 +44,7 @@ def build() -> Path:
                     info = tarfile.TarInfo("proofline/" + name)
                     info.size = len(data)
                     info.mtime = 0
-                    info.mode = 0o644
+                    info.mode = 0o755 if name != "MANIFEST.json" and (ROOT / name).stat().st_mode & 0o111 else 0o644
                     archive.addfile(info, io.BytesIO(data))
     digest = hashlib.sha256(target.read_bytes()).hexdigest()
     target.with_suffix(target.suffix + ".sha256").write_text(f"{digest}  {target.name}\n")
