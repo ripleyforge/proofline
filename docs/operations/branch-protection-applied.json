@@ -1,0 +1,17 @@
+{
+  "event": "branch_protection_readback",
+  "observed_at": "2026-09-21T05:20:26.674558+00:00",
+  "repository": "ripleyforge/proofline",
+  "branch": "main",
+  "required_status_contexts": [
+    "Application and browser checks"
+  ],
+  "strict": true,
+  "enforce_admins": true,
+  "requires_pr": true,
+  "required_github_approval_count": 0,
+  "independent_review": "Agent review recorded in docs/reviews; not represented as human GitHub approval.",
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "cost_change": "none"
+}

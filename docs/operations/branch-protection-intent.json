@@ -1,0 +1,16 @@
+{
+  "event": "branch_protection_intent",
+  "repository": "ripleyforge/proofline",
+  "branch": "main",
+  "owner": "Chase Ripley / Ripley Forge",
+  "environment": "portfolio-source",
+  "authority": "Complete portfolio project with proper CI/CD, current task 01a0c24c-f805-7123-bf3d-8cbd940fae87",
+  "expires": "task-completion",
+  "idempotency_key": "proofline-main-protection-v1",
+  "observed_before": "main unprotected (GitHub404)",
+  "policy_sha256": "389685b390bb062680b20ab1ca8b9ae1d61f1bb2f7ebb72c20ff00e13847049b",
+  "workflow_sha256": "cbb3452200645181e939709e997b093888f0c803b85960905024fe9fc064c45d",
+  "source_revision": "6b98c78c0f5cf84aecc244c5a262d106bd7aea5f",
+  "health": "Required Application and browser checks status",
+  "disable_path": "Disable Actions if required; source rollback via reviewed revert PR. Do not bypass branch protections."
+}
