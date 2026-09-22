@@ -50,7 +50,7 @@ export function EvaluationView({ evaluations, isLoading, isRunning, error, onRun
           </section>
           <section className="panel evaluation-cases">
             <SectionHeading title="Case results" description={`Each outcome includes the runner's recorded reason. Completed in ${formatDuration(selected.duration_ms)}.`} />
-            <div className="table-scroll">
+            <div className="table-scroll" role="region" aria-label="Evaluation case results" tabIndex={0}>
               <table>
                 <thead><tr><th scope="col">Result</th><th scope="col">Case</th><th scope="col">Category</th><th scope="col">Detail</th><th scope="col">Time</th></tr></thead>
                 <tbody>{selected.cases.map((testCase) => <tr key={testCase.id}><td><span className={testCase.passed ? 'case-result passed' : 'case-result failed'}>{testCase.passed ? <Check size={14} /> : <X size={14} />}{testCase.passed ? 'Pass' : 'Fail'}</span></td><th scope="row">{testCase.name}</th><td><span className="category-tag">{testCase.category}</span></td><td>{testCase.detail}</td><td>{formatDuration(testCase.duration_ms)}</td></tr>)}</tbody>

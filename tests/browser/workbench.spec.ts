@@ -73,6 +73,21 @@ test('unsupported questions abstain and evaluation displays actual case results'
   await expect(page.getByText('not a model benchmark', { exact: false })).toBeVisible();
 });
 
+test('mobile evaluation results can be scrolled with the keyboard', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Evaluation lab', exact: true }).click();
+  await page.getByRole('button', { name: 'Run evaluation', exact: true }).click();
+  await page.getByRole('table').waitFor();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const results = page.locator('.table-scroll');
+  await results.focus();
+  await expect(results).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(() => results.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations.filter(v => ['serious', 'critical'].includes(v.impact ?? ''))).toEqual([]);
+});
+
 test('scenario switching never mixes evidence, and unsafe requests are rejected', async ({ page, request }) => {
   const incidents = await (await request.get('/api/incidents')).json();
   await page.goto('/');

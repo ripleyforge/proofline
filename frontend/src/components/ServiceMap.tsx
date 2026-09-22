@@ -66,7 +66,7 @@ export function ServiceMap({ services }: { services: ServiceNode[] }) {
           }))}
           {nodes.map((node) => (
             <g key={node.id} className={`map-node map-node-${node.status}`} transform={`translate(${node.x - 68} ${node.y - 24})`}>
-              <rect width="136" height="48" rx="8" />
+              <rect width="136" height="48" rx="0" />
               <circle cx="16" cy="16" r="4" />
               <text x="26" y="19">{node.label}</text>
               <text className="map-node-status" x="16" y="36">{node.status}</text>

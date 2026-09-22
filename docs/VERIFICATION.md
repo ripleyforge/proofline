@@ -62,3 +62,14 @@ Desktop workspace and history screenshots were refreshed. Browser checks exercis
 Before restarting the local demo with the additive SQLite index, a consistent project-local database backup passed integrity checking. The handoff endpoints perform no inference or writes and disclose included/total counts when the latest 20 runs or 50 notes omit older records. Browser drafts remain in the current tab's session storage, with an explicit in-memory fallback if storage is unavailable.
 
 The [independent improvement review](reviews/2026-09-21-improvements.md) covers backend behavior and the integrated interface. The reviewed note race and its affected-path recheck are recorded there. Optional model code is unchanged; the earlier local inference observation remains historical evidence, and no additional model or cloud invocation was needed for this pass.
+
+
+## Ember interface update — 2026-09-22 UTC
+
+Runtime candidate `be37836d2920b4b0a8f8e2aa11a0958a6a90ffc8` applies the canonical Ripley Forge colors and licensed local fonts, with the owner-requested square corners and restrained glass navigation. Charts, evidence, forms and results remain opaque. Reduced-transparency mode removes blur and translucency. No application API or backend behavior changed.
+
+The existing 21 browser workflows passed on the theme implementation. Broader rendered inspection of workspace, completed result, evidence drawer, history, evaluation and mobile views found a pre-existing keyboard-access gap in the horizontally scrollable evaluation table. A new browser regression failed before the fix and passed afterward. Following the final control-width refinement, all three affected desktop/mobile accessibility, evaluation-scroll and history-control checks passed. The suite now contains 22 browser tests; required CI executes the complete suite.
+
+TypeScript/build, ESLint and diff checks passed. The rendered checks observed both fonts loaded locally and no external browser requests. Documentation screenshots were refreshed from synthetic preview data and visually inspected. The font binaries are byte-for-byte copies from the canonical brand kit, with their OFL licenses included; binary files are not covered by the tracked-text credential scanner.
+
+An independent coding agent approved `be37836` after exact-diff, desktop/mobile visual and focused rendered review, including the reduced-transparency fallback and keyboard table scrolling. No actionable findings remained in this UI scope. This is agent review and bounded automated accessibility evidence, not human approval or a WCAG conformance claim.
