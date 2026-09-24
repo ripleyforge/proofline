@@ -59,3 +59,5 @@ No AWS service, hosted model, runner upgrade, Actions cache or uploaded CI artif
 ## Hypothesis editing
 
 Hypothesis edits append revisions; there is no delete action. The list shows the latest 100 hypotheses and history the latest 100 revisions, with total counts. A conflicting edit from another tab returns 409 and leaves the draft visible; use the explicit reload control to reconcile before saving. Latest hypothesis states appear in handoffs, but complete revision history lives in the SQLite backup. The interface labels all statuses as analyst assessments. Source links and trust labels do not make the reasoning true.
+
+Workspace selection and the last saved result resume within the same browser tab. Only IDs are stored for result restoration; API failure never produces a cached substitute. Questions, notes and hypothesis drafts are also tab-scoped. Successful hypothesis saves and explicit discard clear that draft; switching views or incidents does not. If browser storage is blocked, the notice explains which state cannot survive navigation or reload.

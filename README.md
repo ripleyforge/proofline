@@ -29,14 +29,14 @@ Choose an incident, open a source, and try a suggested question. The [five-minut
 - Compare BM25 and focused retrieval, inspect the steps and timing, and follow each source link.
 - Switch between exact evidence extracts and optional local model prose without hidden fallbacks.
 - Test unsupported questions, known untrusted evidence and citation failures in the evaluation lab.
-- Keep unfinished questions and notes while switching incidents or reloading the same browser tab.
+- Resume the last incident and saved result after a tab reload; keep unfinished questions, notes and hypothesis edits scoped to their incident.
 - Search and filter paginated run history; open a full result only when needed.
 - Export a single run or an incident handoff containing saved runs, notes, source references, and explicit coverage counts.
 - Compare two sources side by side, keeping their observation times and trust labels visible.
 - Record competing hypotheses with supporting/challenging evidence, next checks, and immutable revision history.
 - Inspect why BM25 and focused retrieval select different sources, without invoking a model or saving another run.
 
-Preview the [searchable run history](docs/images/run-history.png), or follow the [demo walkthrough](docs/DEMO.md).
+Preview the [evidence comparison](docs/images/evidence-comparison.png) and [searchable run history](docs/images/run-history.png), or follow the [demo walkthrough](docs/DEMO.md).
 
 Citation checks validate source identity, incident scope and exact quoted text. They do **not** prove that model prose follows from a quote or that a suspected cause is correct. The deterministic evaluation suite is not an LLM benchmark. See [evaluation design](docs/EVALUATION.md) and [security boundaries](docs/SECURITY.md).
 
@@ -96,7 +96,7 @@ scripts/            setup, verification, backup, local packaging
 
 ## Data, backups and delivery
 
-Saved records live in ignored `.local/proofline.sqlite3`. Unfinished questions, note text and selected references stay in browser session storage for the current tab; saving a note clears that note draft. Browser storage failure falls back to in-memory drafts with an explicit notice. No notes, databases, model files, or credentials belong in Git. `python3 scripts/backup.py` creates and integrity-checks a consistent SQLite backup. Follow [operations and recovery](docs/OPERATIONS.md) to restore it.
+Saved records live in ignored `.local/proofline.sqlite3`. Unfinished questions, note text, hypothesis edits and selected references stay in browser session storage for the current tab. The last incident and run IDs are also remembered, with the saved result fetched again from the API; saving a note clears that note draft. Browser storage failure falls back to in-memory drafts with an explicit notice. No notes, databases, model files, or credentials belong in Git. `python3 scripts/backup.py` creates and integrity-checks a consistent SQLite backup. Follow [operations and recovery](docs/OPERATIONS.md) to restore it.
 
 After committing and passing checks, `python3 scripts/package.py` creates a checksummed bundle under `.local/releases/`. `python3 scripts/check_bundle.py` verifies and boots that bundle in isolation. This is a local source-and-interface delivery; it does not provision cloud resources. [Delivery boundaries](docs/DELIVERY.md) describe ownership and cost controls.
 
