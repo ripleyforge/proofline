@@ -15,6 +15,8 @@ import { Shell } from './components/Shell'
 import { emptyIncidentDraft, loadIncidentDrafts, saveIncidentDrafts } from './drafts'
 import type { DraftLoadResult, IncidentDraft, IncidentDrafts } from './drafts'
 import { formatDateTime } from './format'
+import { loadWorkspaceContext, saveWorkspaceContext, workspaceStorageNotice } from './workspace-context'
+import type { WorkspaceContext, WorkspaceContextLoad } from './workspace-context'
 import type {
   AppView,
   Config,
@@ -47,6 +49,8 @@ function mergeIncidentNotes(incidentId: string, current: Note[], incoming: Note[
 export function App() {
   const initialDraftsRef = useRef<DraftLoadResult | null>(null)
   if (!initialDraftsRef.current) initialDraftsRef.current = loadIncidentDrafts()
+  const initialWorkspaceRef = useRef<WorkspaceContextLoad | null>(null)
+  if (!initialWorkspaceRef.current) initialWorkspaceRef.current = loadWorkspaceContext()
   const [view, setView] = useState<AppView>(readView)
   const viewRef = useRef<AppView>(readView())
   const [config, setConfig] = useState<Config | null>(null)
@@ -59,6 +63,8 @@ export function App() {
   const [requestedEvidenceId, setRequestedEvidenceId] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<IncidentDrafts>(() => initialDraftsRef.current?.drafts ?? {})
   const [draftPersistenceAvailable, setDraftPersistenceAvailable] = useState(() => initialDraftsRef.current?.persistenceAvailable ?? false)
+  const [workspaceNotice, setWorkspaceNotice] = useState<string | null>(() => initialWorkspaceRef.current?.notice ?? null)
+  const [restoringRun, setRestoringRun] = useState(false)
   const [bootLoading, setBootLoading] = useState(true)
   const [incidentLoading, setIncidentLoading] = useState(false)
   const [evaluationLoading, setEvaluationLoading] = useState(false)
@@ -75,51 +81,104 @@ export function App() {
   const investigationRequestRef = useRef(0)
   const noteRequestRef = useRef(0)
   const reopenRequestRef = useRef(0)
+  const bootRequestRef = useRef(0)
+  const restoreRequestRef = useRef(0)
+  const pendingRestoreRef = useRef<WorkspaceContext | null>(null)
+
+  const rememberWorkspace = useCallback((incidentId: string, runId: string | null) => {
+    if (!saveWorkspaceContext({ incidentId, runId })) setWorkspaceNotice(workspaceStorageNotice)
+  }, [])
+
+  const cancelWorkspaceRestore = useCallback(() => {
+    restoreRequestRef.current += 1
+    pendingRestoreRef.current = null
+    setRestoringRun(false)
+  }, [])
 
   const updateDraft = useCallback((incidentId: string, patch: Partial<IncidentDraft>) => {
+    if (patch.question !== undefined) cancelWorkspaceRestore()
     setDrafts((current) => ({
       ...current,
       [incidentId]: { ...(current[incidentId] ?? emptyIncidentDraft), ...patch },
     }))
-  }, [])
+  }, [cancelWorkspaceRestore])
 
   useEffect(() => {
     if (!saveIncidentDrafts(drafts)) setDraftPersistenceAvailable(false)
   }, [drafts])
 
   const loadInitial = useCallback(async () => {
+    const requestId = ++bootRequestRef.current
     setBootLoading(true)
     setBootError(null)
     try {
       const [nextConfig, nextIncidents] = await Promise.all([api.config(), api.incidents()])
+      if (bootRequestRef.current !== requestId) return
       setConfig(nextConfig)
       setIncidents(nextIncidents)
-      setSelectedIncidentId((current) => {
-        const next = current && nextIncidents.some((item) => item.id === current) ? current : nextIncidents[0]?.id ?? null
-        selectedIncidentRef.current = next
-        return next
-      })
+      const saved = initialWorkspaceRef.current?.context
+      const preferredId = selectedIncidentRef.current ?? saved?.incidentId
+      const next = nextIncidents.find((item) => item.id === preferredId)?.id ?? nextIncidents[0]?.id ?? null
+      const canRestore = saved?.incidentId === next
+      if (saved && !canRestore) setWorkspaceNotice('Previous incident is no longer available. Choose from the current incident queue.')
+      pendingRestoreRef.current = canRestore && saved?.runId ? saved : null
+      selectedIncidentRef.current = next
+      setSelectedIncidentId(next)
+      if (next) rememberWorkspace(next, canRestore ? saved?.runId ?? null : null)
     } catch (error) {
-      setBootError(messageFrom(error))
+      if (bootRequestRef.current === requestId) setBootError(messageFrom(error))
     } finally {
-      setBootLoading(false)
+      if (bootRequestRef.current === requestId) setBootLoading(false)
     }
-  }, [])
+  }, [rememberWorkspace])
 
-  useEffect(() => { void loadInitial() }, [loadInitial])
+  useEffect(() => {
+    void loadInitial()
+    return () => {
+      bootRequestRef.current += 1
+      restoreRequestRef.current += 1
+    }
+  }, [loadInitial])
+
+  useEffect(() => {
+    const saved = pendingRestoreRef.current
+    if (view !== 'workspace' || !saved?.runId || selectedIncidentId !== saved.incidentId) return
+    const runId = saved.runId
+    pendingRestoreRef.current = null
+    const requestId = ++restoreRequestRef.current
+    const isCurrent = () => restoreRequestRef.current === requestId
+      && selectedIncidentRef.current === saved.incidentId && viewRef.current === 'workspace'
+    setRestoringRun(true)
+    void (async () => {
+      try {
+        const run = await api.investigation(runId)
+        if (!isCurrent()) return
+        if (run.id !== saved.runId || run.incident_id !== saved.incidentId) throw new Error('Saved run does not match workspace')
+        setCurrentRun(run)
+      } catch {
+        if (!isCurrent()) return
+        setWorkspaceNotice('The previous result could not be restored. Your incident and drafts remain available; open another saved result from Run history.')
+        rememberWorkspace(saved.incidentId, null)
+      } finally {
+        if (isCurrent()) setRestoringRun(false)
+      }
+    })()
+  }, [rememberWorkspace, selectedIncidentId, view])
 
   useEffect(() => {
     const onHashChange = () => {
       const next = readView()
+      if (next !== 'workspace') cancelWorkspaceRestore()
       viewRef.current = next
       if (next !== 'history') reopenRequestRef.current += 1
       setView(next)
     }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
-  }, [])
+  }, [cancelWorkspaceRestore])
 
   const changeView = (next: AppView) => {
+    if (next !== 'workspace') cancelWorkspaceRestore()
     viewRef.current = next
     if (next !== 'history') reopenRequestRef.current += 1
     window.location.hash = `/${next}`
@@ -186,6 +245,8 @@ export function App() {
 
   const selectIncident = (id: string) => {
     if (id === selectedIncidentId) return
+    cancelWorkspaceRestore()
+    rememberWorkspace(id, null)
     selectedIncidentRef.current = id
     incidentRequestRef.current += 1
     investigationRequestRef.current += 1
@@ -205,12 +266,16 @@ export function App() {
   const runInvestigation = async (input: { question: string; strategy: RetrievalStrategy; mode: GenerationMode }) => {
     const incidentId = selectedIncidentRef.current
     if (!incidentId) return
+    cancelWorkspaceRestore()
     const requestId = ++investigationRequestRef.current
     setInvestigationRunning(true)
     setInvestigationError(null)
     try {
       const result = await api.createInvestigation({ incident_id: incidentId, ...input })
-      if (selectedIncidentRef.current === incidentId && investigationRequestRef.current === requestId) setCurrentRun(result)
+      if (selectedIncidentRef.current === incidentId && investigationRequestRef.current === requestId) {
+        setCurrentRun(result)
+        rememberWorkspace(incidentId, result.id)
+      }
     } catch (error) {
       if (selectedIncidentRef.current === incidentId && investigationRequestRef.current === requestId) setInvestigationError(messageFrom(error))
     } finally {
@@ -282,6 +347,7 @@ export function App() {
   }
 
   const reopenRun = async (id: string): Promise<void> => {
+    cancelWorkspaceRestore()
     const requestId = ++reopenRequestRef.current
     const run = await api.investigation(id)
     if (reopenRequestRef.current !== requestId || viewRef.current !== 'history') return
@@ -299,6 +365,7 @@ export function App() {
       if (sameSelection) void loadIncident(run.incident_id)
     }
     setCurrentRun(run)
+    rememberWorkspace(run.incident_id, run.id)
     setRequestedEvidenceId(null)
     setInvestigationRunning(false)
     setInvestigationError(null)
@@ -325,6 +392,8 @@ export function App() {
         <div className="workspace-layout">
           <IncidentQueue incidents={incidents} activeId={selectedIncidentId} onSelect={selectIncident} />
           <div className="workspace-main">
+            {workspaceNotice && <div className="draft-storage-notice" role="status"><AlertTriangle size={16} aria-hidden="true" />{workspaceNotice}</div>}
+            {restoringRun && <div className="draft-storage-notice" role="status"><LoaderCircle className="spin" size={16} aria-hidden="true" />Restoring the previous saved result. You can continue investigating.</div>}
             {!draftPersistenceAvailable && <div className="draft-storage-notice" role="status"><AlertTriangle size={16} aria-hidden="true" />Drafts cannot be saved in this browser. Keep this tab open.</div>}
             {incidentLoading ? <LoadingState label="Loading incident evidence" /> : incidentError ? <ErrorState message={incidentError} onRetry={selectedIncidentId ? () => void loadIncident(selectedIncidentId) : undefined} /> : incident ? (
               <>
