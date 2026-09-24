@@ -6,6 +6,7 @@
 .hypotheses-panel .section-heading > .secondary-button { flex-shrink: 0; }
 .hypothesis-form { margin: 0 20px 18px; padding: 16px; border: 1px solid var(--border-strong); background: var(--char); }
 .hypothesis-form h3 { font-size: .85rem; }
+.hypothesis-draft-help { color: var(--text-secondary); font-size: .7rem; }
 .hypothesis-form fieldset { display: grid; gap: 7px; }
 .hypothesis-form label { margin-top: 5px; color: var(--text-secondary); font-size: .73rem; font-weight: 650; }
 .hypothesis-form select { min-height: 36px; max-width: 100%; padding: 7px; font-size: .73rem; }

@@ -2,12 +2,20 @@ import { ChevronDown, LoaderCircle, Plus } from 'lucide-react'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { api, ApiError } from '../api'
 import { formatDateTime } from '../format'
+import { clearSubmittedHypothesisDraft, loadHypothesisDraft, saveHypothesisDraft } from '../hypothesisDrafts'
+import type { HypothesisDraftLoad, HypothesisDraftNotice, HypothesisEditTarget } from '../hypothesisDrafts'
 import type { Evidence, Hypothesis, HypothesisInput, HypothesisPage, HypothesisStatus } from '../types'
 import { EmptyState, ErrorState, LoadingState, SectionHeading } from './Primitives'
 
 const statuses: Record<HypothesisStatus, string> = { open: 'Open', supported: 'Supported', ruled_out: 'Ruled out' }
 const emptyDraft = (): HypothesisInput => ({ statement: '', status: 'open', rationale: '', next_check: '', supporting_evidence_ids: [], challenging_evidence_ids: [] })
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'The request failed.'
+const authoredInput = (item: HypothesisInput): HypothesisInput => ({ statement: item.statement, status: item.status, rationale: item.rationale, next_check: item.next_check, supporting_evidence_ids: item.supporting_evidence_ids, challenging_evidence_ids: item.challenging_evidence_ids })
+const draftNotices: Record<NonNullable<HypothesisDraftNotice>, string> = {
+  unavailable: 'Browser storage cannot keep hypothesis drafts up to date. Keep this editor open until you save.',
+  invalid: 'An invalid saved hypothesis draft could not be restored. You can start a new draft.',
+  pruned: 'Restored your draft and removed unavailable or conflicting evidence references.',
+}
 
 interface HypothesesPanelProps {
   incidentId: string
@@ -17,11 +25,14 @@ interface HypothesesPanelProps {
 
 // The incident-keyed parent gives every incident its own request lifetime.
 export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: HypothesesPanelProps) {
+  const initialDraftRef = useRef<HypothesisDraftLoad | null>(null)
+  if (!initialDraftRef.current) initialDraftRef.current = loadHypothesisDraft(incidentId, new Set(evidence.map((item) => item.id)))
   const [page, setPage] = useState<HypothesisPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [draft, setDraft] = useState<HypothesisInput | null>(null)
-  const [editing, setEditing] = useState<Hypothesis | null>(null)
+  const [draft, setDraft] = useState<HypothesisInput | null>(() => initialDraftRef.current?.draft?.input ?? null)
+  const [editing, setEditing] = useState<HypothesisEditTarget | null>(() => initialDraftRef.current?.draft?.editing ?? null)
+  const [draftNotice, setDraftNotice] = useState<HypothesisDraftNotice>(() => initialDraftRef.current?.notice ?? null)
   const [saving, setSaving] = useState(false)
   const [conflict, setConflict] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -32,6 +43,18 @@ export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: Hypoth
   const statusId = useId()
   const rationaleId = useId()
   const nextCheckId = useId()
+
+  const updateDraft = (next: HypothesisInput | null, target: HypothesisEditTarget | null = editing) => {
+    setDraft(next)
+    setEditing(target)
+    if (!saveHypothesisDraft(incidentId, next ? { input: next, editing: target } : null)) setDraftNotice('unavailable')
+  }
+
+  useEffect(() => {
+    // Persist the validated, incident-scoped version of a restored draft.
+    const initial = initialDraftRef.current
+    if (initial?.draft && !saveHypothesisDraft(incidentId, initial.draft)) setDraftNotice('unavailable')
+  }, [incidentId])
 
   const load = useCallback(async () => {
     const requestId = ++requestRef.current
@@ -57,8 +80,7 @@ export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: Hypoth
   useEffect(() => { if (editorOpen) editorRef.current?.focus() }, [editorOpen, editingId])
 
   const startEdit = (hypothesis?: Hypothesis) => {
-    setEditing(hypothesis ?? null)
-    setDraft(hypothesis ? { ...hypothesis } : emptyDraft())
+    updateDraft(hypothesis ? authoredInput(hypothesis) : emptyDraft(), hypothesis ? { id: hypothesis.id, revision: hypothesis.revision } : null)
     setError(null)
     setConflict(false)
     setNotice(null)
@@ -71,8 +93,9 @@ export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: Hypoth
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!draft || !draft.statement.trim() || saving || conflict) return
+    if (!draft || !draft.statement.trim() || saving || conflict || loading || loadError) return
     const requestId = ++requestRef.current
+    const submitted = { input: draft, editing }
     setSaving(true)
     setError(null)
     try {
@@ -85,7 +108,9 @@ export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: Hypoth
       const saved = editing
         ? await api.updateHypothesis(incidentId, editing.id, { ...input, expected_revision: editing.revision })
         : await api.createHypothesis(incidentId, input)
+      const cleared = clearSubmittedHypothesisDraft(incidentId, submitted)
       if (requestRef.current !== requestId) return
+      if (!cleared) setDraftNotice('unavailable')
       mergeSaved(saved, !editing)
       setDraft(null)
       setEditing(null)
@@ -110,8 +135,7 @@ export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: Hypoth
       if (!latest) throw new Error('No saved revision was returned. Your draft is still available.')
       if (requestRef.current !== requestId) return
       mergeSaved(latest, false)
-      setEditing(latest)
-      setDraft({ ...latest })
+      updateDraft(authoredInput(latest), { id: latest.id, revision: latest.revision })
       setConflict(false)
       setNotice(`Loaded revision ${latest.revision}.`)
     } catch (cause) {
@@ -131,7 +155,7 @@ export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: Hypoth
       setError('Each side can contain up to 30 sources. Remove a reference before adding another.')
       return
     }
-    setDraft({ ...draft, supporting_evidence_ids: supporting, challenging_evidence_ids: challenging })
+    updateDraft({ ...draft, supporting_evidence_ids: supporting, challenging_evidence_ids: challenging })
   }
 
   return (
@@ -139,19 +163,21 @@ export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: Hypoth
       <SectionHeading title="Hypotheses" description="Record explanations to test. Every status is your judgment, not a model finding."
         action={<button type="button" className="secondary-button" disabled={loading || !!draft || !!loadError} onClick={() => startEdit()}><Plus size={16} />Add hypothesis</button>} />
       {notice && <p className="reasoning-notice" role="status">{notice}</p>}
+      {draftNotice && <p className="reasoning-notice" role="status">{draftNotices[draftNotice]}</p>}
       {draft && <form className="hypothesis-form" onSubmit={save}>
         <h3>{editing ? `Edit hypothesis · revision ${editing.revision}` : 'New hypothesis'}</h3>
+        {!draftNotice && <p className="hypothesis-draft-help">Unsaved drafts stay in this browser tab as you navigate or reload.</p>}
         <fieldset disabled={saving}>
           <label htmlFor={statementId}>Hypothesis statement</label>
-          <textarea ref={editorRef} id={statementId} value={draft.statement} onChange={(event) => setDraft({ ...draft, statement: event.target.value })} rows={3} maxLength={500} required />
+          <textarea ref={editorRef} id={statementId} value={draft.statement} onChange={(event) => updateDraft({ ...draft, statement: event.target.value })} rows={3} maxLength={500} required />
           <label htmlFor={statusId}>Analyst status</label>
-          <select id={statusId} value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as HypothesisStatus })}>
+          <select id={statusId} value={draft.status} onChange={(event) => updateDraft({ ...draft, status: event.target.value as HypothesisStatus })}>
             {Object.entries(statuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
           <label htmlFor={rationaleId}>Rationale</label>
-          <textarea id={rationaleId} value={draft.rationale} onChange={(event) => setDraft({ ...draft, rationale: event.target.value })} rows={3} maxLength={4000} />
+          <textarea id={rationaleId} value={draft.rationale} onChange={(event) => updateDraft({ ...draft, rationale: event.target.value })} rows={3} maxLength={4000} />
           <label htmlFor={nextCheckId}>Next check</label>
-          <textarea id={nextCheckId} value={draft.next_check} onChange={(event) => setDraft({ ...draft, next_check: event.target.value })} rows={2} maxLength={1000} />
+          <textarea id={nextCheckId} value={draft.next_check} onChange={(event) => updateDraft({ ...draft, next_check: event.target.value })} rows={2} maxLength={1000} />
           <details className="hypothesis-reference-picker">
             <summary>Evidence references <span>{draft.supporting_evidence_ids.length} supporting / {draft.challenging_evidence_ids.length} challenging</span><ChevronDown size={14} aria-hidden="true" /></summary>
             <p>Choose the role each source plays in your reasoning. Untrusted sources stay labeled and excluded from answer context.</p>
@@ -165,8 +191,8 @@ export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: Hypoth
         </fieldset>
         {conflict && <div className="hypothesis-conflict" role="alert"><p>A newer revision was saved elsewhere. Your unsaved draft is preserved in the editor; copy anything you want to keep before reloading. Reload replaces the editor with the latest saved version.</p><button type="button" className="secondary-button" disabled={saving} onClick={() => void reloadSaved()}>Reload saved version</button></div>}
         {error && <p className="form-error" role="alert">{error}</p>}
-        <div className="hypothesis-form-actions"><button type="submit" className="primary-button" disabled={saving || conflict || !draft.statement.trim()}>{saving ? <><LoaderCircle className="spin" size={16} />Saving</> : 'Save hypothesis'}</button>
-          <button type="button" className="secondary-button" disabled={saving} onClick={() => { setDraft(null); setEditing(null); setError(null); setConflict(false) }}>Discard edit</button></div>
+        <div className="hypothesis-form-actions"><button type="submit" className="primary-button" disabled={saving || conflict || loading || !!loadError || !draft.statement.trim()}>{saving ? <><LoaderCircle className="spin" size={16} />Saving</> : 'Save hypothesis'}</button>
+          <button type="button" className="secondary-button" disabled={saving} onClick={() => { updateDraft(null, null); setError(null); setConflict(false) }}>Discard edit</button></div>
       </form>}
       {loading ? <LoadingState label="Loading hypotheses" /> : loadError ? <ErrorState message={loadError} onRetry={() => void load()} /> : page && <>
         <p className="reasoning-count">Showing {page.items.length} of {page.total} hypotheses{page.total > page.items.length ? ' · Latest 100 only' : ''}</p>
