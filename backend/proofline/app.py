@@ -16,6 +16,7 @@ from proofline.corpus import Corpus
 from proofline.evaluation import evaluate
 from proofline.export import brief_markdown, incident_brief, markdown
 from proofline.generation import ExtractiveGenerator, LocalGenerator, OllamaGenerator, ProviderError
+from proofline.inspection import InspectionInput, RetrievalInspection
 from proofline.models import (
     Evaluation,
     EvaluationInput,
@@ -205,6 +206,12 @@ def create_app(
     @app.get("/api/incidents/{incident_id}", response_model=IncidentDetail)
     def get_incident(incident_id: str):
         return incident(incident_id)
+
+    @app.post("/api/retrieval/inspect", response_model=RetrievalInspection)
+    def inspect_retrieval(body: InspectionInput):
+        # Inspection describes the built-in policies, independent of optional
+        # test/provider substitutions. It never invokes generation or persistence.
+        return BM25Retriever().inspect(incident(body.incident_id), body.question)
 
     @app.get("/api/incidents/{incident_id}/brief")
     def export_incident(incident_id: str, format: Literal["markdown", "json"] = "markdown"):
