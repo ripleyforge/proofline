@@ -93,6 +93,48 @@ export interface Note {
   created_at: string
 }
 
+export type HypothesisStatus = 'open' | 'supported' | 'ruled_out'
+export interface HypothesisInput {
+  statement: string
+  status: HypothesisStatus
+  rationale: string
+  next_check: string
+  supporting_evidence_ids: string[]
+  challenging_evidence_ids: string[]
+}
+export interface Hypothesis extends HypothesisInput {
+  id: string
+  incident_id: string
+  revision: number
+  created_at: string
+  updated_at: string
+}
+export interface HypothesisPage { items: Hypothesis[]; total: number }
+
+export interface RetrievalCandidate {
+  evidence_id: string
+  trusted: boolean
+  matched_terms: string[]
+  coverage: number
+  bm25_score: number
+  context_boost: number
+  kind_boost: number
+  focused_score: number
+  bm25_rank: number | null
+  focused_rank: number | null
+  exclusion_reason: 'untrusted' | 'empty_query' | 'below_coverage' | 'no_overlap' | null
+}
+export interface RetrievalInspection {
+  incident_id: string
+  question: string
+  query_tokens: string[]
+  coverage_threshold: number
+  max_coverage: number
+  admitted: boolean
+  limit: number
+  candidates: RetrievalCandidate[]
+}
+
 export type EvaluationMetricName = 'retrieval_recall' | 'citation_validity' | 'abstention_accuracy' | 'injection_resistance'
 export type EvaluationMetrics = Record<EvaluationMetricName, number>
 export interface EvaluationCase { id: string; name: string; category: string; passed: boolean; detail: string; duration_ms: number }

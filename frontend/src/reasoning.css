@@ -1,0 +1,113 @@
+/* Reasoning surfaces retain the existing Ember tokens and square geometry. */
+.hypothesis-shortcut { margin-bottom: 12px; }
+.hypotheses-panel { scroll-margin-top: 16px; }
+.reasoning-count, .reasoning-notice { margin: 0; padding: 0 20px 14px; color: var(--text-secondary); font-size: .72rem; }
+.reasoning-notice { color: var(--bone); }
+.hypotheses-panel .section-heading > .secondary-button { flex-shrink: 0; }
+.hypothesis-form { margin: 0 20px 18px; padding: 16px; border: 1px solid var(--border-strong); background: var(--char); }
+.hypothesis-form h3 { font-size: .85rem; }
+.hypothesis-draft-help { color: var(--text-secondary); font-size: .7rem; }
+.hypothesis-form fieldset { display: grid; gap: 7px; }
+.hypothesis-form label { margin-top: 5px; color: var(--text-secondary); font-size: .73rem; font-weight: 650; }
+.hypothesis-form select { min-height: 36px; max-width: 100%; padding: 7px; font-size: .73rem; }
+.hypothesis-form fieldset > select { width: min(240px, 100%); }
+.hypothesis-form-actions, .hypothesis-item-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hypothesis-list { display: grid; gap: 10px; padding: 0 20px 20px; }
+.hypothesis-item { min-width: 0; padding: 14px; border: 1px solid var(--border); background: var(--coal); }
+.hypothesis-item-heading { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.hypothesis-item-heading small, .hypothesis-item-actions time { color: var(--text-muted); font-size: .65rem; }
+.hypothesis-status { padding: 3px 6px; border-left: 2px solid var(--ember); background: var(--accent-wash); color: var(--bone); font-size: .66rem; }
+.hypothesis-status.supported { border-color: var(--smoke); background: var(--success-wash); }
+.hypothesis-status.ruled_out { border-color: var(--ash); color: var(--smoke); background: var(--char); }
+.hypothesis-item h3 { margin: 12px 0; font-size: .9rem; line-height: 1.4; overflow-wrap: anywhere; }
+.hypothesis-item-actions { justify-content: space-between; margin-bottom: 10px; }
+.hypothesis-reasoning, .hypothesis-history { border-top: 1px solid var(--border); }
+.hypothesis-reasoning > summary, .hypothesis-history > summary, .hypothesis-reference-picker > summary, .retrieval-inspector > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 0; list-style: none; cursor: pointer; color: var(--text-secondary); font-size: .73rem; font-weight: 650; }
+.hypothesis-reasoning > summary::-webkit-details-marker, .hypothesis-history > summary::-webkit-details-marker, .hypothesis-reference-picker > summary::-webkit-details-marker, .retrieval-inspector > summary::-webkit-details-marker { display: none; }
+.hypothesis-reasoning[open] > summary svg, .hypothesis-history[open] > summary svg, .hypothesis-reference-picker[open] > summary svg, .retrieval-inspector[open] > summary svg { transform: rotate(180deg); }
+.hypothesis-content { padding: 2px 0 13px; }
+.hypothesis-content dl { display: grid; gap: 13px; margin: 0 0 15px; }
+.hypothesis-content dt, .hypothesis-source-list h4 { margin: 0 0 5px; font-size: .69rem; color: var(--text-muted); font-weight: 650; }
+.hypothesis-content dd { margin: 0; color: var(--text-secondary); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .77rem; line-height: 1.6; }
+.hypothesis-source-list { display: grid; justify-items: start; gap: 5px; margin-top: 12px; }
+.hypothesis-source-list p { margin: 0; color: var(--text-secondary); font-size: .73rem; }
+.hypothesis-source-list .source-link { text-align: left; flex-wrap: wrap; overflow-wrap: anywhere; }
+.hypothesis-history > .reasoning-count { padding: 0 0 12px; }
+.hypothesis-history ol { display: grid; gap: 16px; list-style: none; margin: 0; padding: 0 0 0 12px; border-left: 2px solid var(--border-strong); }
+.hypothesis-history li > div:first-child { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: .69rem; }
+.hypothesis-history time { color: var(--text-muted); }
+.hypothesis-history h4 { margin: 12px 0; font-size: .8rem; overflow-wrap: anywhere; }
+.hypothesis-reference-picker { margin-top: 10px; border-block: 1px solid var(--border-strong); }
+.hypothesis-reference-picker > summary { flex-wrap: wrap; }
+.hypothesis-reference-picker > summary span { font-size: .65rem; font-weight: 400; color: var(--text-muted); }
+.hypothesis-reference-picker > p { color: var(--text-secondary); font-size: .7rem; }
+.hypothesis-reference-choice { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-top: 1px solid var(--border); }
+.hypothesis-reference-choice > div { min-width: 0; display: grid; gap: 5px; }
+.hypothesis-reference-choice .source-link { text-align: left; line-height: 1.4; }
+.hypothesis-reference-choice small { color: var(--text-muted); font-size: .62rem; }
+.hypothesis-reference-choice select { flex-shrink: 0; align-self: center; }
+.hypothesis-conflict { padding: 12px; margin-bottom: 12px; border: 1px solid var(--ember); background: var(--accent-wash); }
+.hypothesis-conflict p { font-size: .77rem; }
+.comparison-tray { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin: 0 20px 14px; padding: 11px; background: var(--char); border: 1px solid var(--border); }
+.comparison-tray > span { display: flex; align-items: center; gap: 7px; color: var(--text-secondary); font-size: .7rem; }
+.comparison-tray > small { color: var(--text-muted); font-size: .67rem; }
+.comparison-tray > button { margin-left: auto; }
+.comparison-tray .secondary-button:disabled { color: var(--ash); border-color: var(--border); }
+.comparison-selected { display: flex; flex-wrap: wrap; gap: 5px; width: 100%; }
+.comparison-selected > span { display: flex; align-items: center; justify-content: space-between; gap: 7px; width: 100%; min-width: 0; color: var(--text-secondary); font-size: .68rem; }
+.drawer-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.comparison-layer { justify-content: center; align-items: center; padding: 24px; }
+.evidence-comparison { display: flex; flex-direction: column; position: relative; width: min(1200px, 100%); max-height: calc(100dvh - 48px); background: var(--coal); border: 1px solid var(--border-strong); }
+.comparison-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 20px; border-bottom: 1px solid var(--border); }
+.comparison-heading h2 { margin: 0 0 6px; font-size: 1.1rem; }
+.comparison-heading p { margin: 0; color: var(--text-secondary); font-size: .76rem; }
+.comparison-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); overflow: auto; min-height: 0; }
+.comparison-source { min-width: 0; padding: 20px; }
+.comparison-source + .comparison-source { border-left: 1px solid var(--border-strong); }
+.comparison-source-kind { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; color: var(--text-muted); font-size: .67rem; }
+.comparison-source h3 { font-size: 1rem; line-height: 1.4; }
+.comparison-source .source-metadata { grid-template-columns: 1fr; }
+.comparison-source .source-metadata > div { display: grid; grid-template-columns: 90px 1fr; align-items: baseline; gap: 8px; }
+.comparison-source .source-metadata dt { margin: 0; }
+.comparison-trust-warning { padding: 10px; color: var(--bone); background: var(--accent-wash); border-left: 2px solid var(--ember); font-size: .74rem; }
+.retrieval-inspector { margin-top: 14px; border: 1px solid var(--border-strong); background: var(--coal); }
+.retrieval-inspector > summary { padding: 12px; }
+.retrieval-inspector-body { padding: 0 12px 12px; }
+.retrieval-inspector-body p { margin-bottom: 10px; color: var(--text-secondary); font-size: .71rem; }
+.retrieval-inspector-body > button { white-space: normal; }
+.retrieval-inspection-result { margin-top: 16px; }
+.retrieval-gate { border-left: 2px solid var(--ember); padding-left: 8px; }
+.retrieval-score-note { font-weight: 650; color: var(--bone) !important; }
+.retrieval-query { margin: 14px 0; font-size: .69rem; }
+.retrieval-query dt { color: var(--text-muted); margin-bottom: 6px; }
+.retrieval-query dd { margin: 0; overflow-wrap: anywhere; line-height: 1.5; }
+.retrieval-candidates { display: grid; gap: 10px; }
+.retrieval-candidate { padding: 10px; border: 1px solid var(--border); background: var(--char); }
+.retrieval-candidate > .source-link { text-align: left; font-size: .74rem; line-height: 1.4; }
+.retrieval-candidate > small { display: block; margin-top: 5px; color: var(--text-muted); font-size: .62rem; }
+.retrieval-ranks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 12px 0; gap: 8px; }
+.retrieval-ranks > div { display: grid; gap: 4px; padding-left: 8px; border-left: 1px solid var(--border-strong); }
+.retrieval-ranks span { font-size: .65rem; color: var(--text-muted); }
+.retrieval-ranks strong { font-size: .75rem; font-variant-numeric: tabular-nums; }
+.retrieval-ranks small { font-size: .6rem; color: var(--text-secondary); }
+.retrieval-exclusion { margin-bottom: 6px; }
+.retrieval-candidate-details { border-top: 1px solid var(--border); padding-top: 7px; }
+.retrieval-candidate-details summary { font-size: .65rem; color: var(--text-secondary); cursor: pointer; }
+.retrieval-candidate-details dl { display: grid; gap: 8px; margin: 12px 0 0; font-size: .65rem; }
+.retrieval-candidate-details dl > div { display: flex; justify-content: space-between; gap: 12px; }
+.retrieval-candidate-details dt { color: var(--text-muted); }
+.retrieval-candidate-details dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+@media (max-width: 650px) {
+  .hypotheses-panel .section-heading { flex-direction: column; align-items: stretch; }
+  .hypothesis-form { margin-inline: 16px; padding: 12px; }
+  .hypothesis-list { padding-inline: 16px; }
+  .hypothesis-reference-choice { flex-direction: column; }
+  .hypothesis-reference-choice select { align-self: stretch; }
+  .comparison-tray { margin-inline: 12px; }
+  .comparison-layer { padding: 10px; }
+  .evidence-comparison { max-height: calc(100dvh - 20px); }
+  .comparison-heading, .comparison-source { padding: 16px; }
+  .comparison-columns { grid-template-columns: minmax(0, 1fr); }
+  .comparison-source + .comparison-source { border-left: 0; border-top: 1px solid var(--border-strong); }
+  .comparison-source .source-metadata > div { grid-template-columns: 75px 1fr; }
+}

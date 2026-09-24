@@ -9,13 +9,15 @@ Secondary user: a solutions engineer demonstrating failure behavior and tradeoff
 
 ## Product scope
 
-1. Open one of three seeded incidents, inspect a service dependency map, time-series signals and an ordered timeline of changes, logs, metrics, and runbooks.
+1. Open one of four seeded incidents, inspect a service dependency map, time-series signals and an ordered timeline of changes, logs, metrics, and runbooks. Compare two sources without losing timestamps or trust labels.
 2. Ask a suggested or custom question. Compare plain BM25 retrieval with focused retrieval that incorporates explicit incident context and evidence kind.
 3. Get deterministic extracts immediately or opt into installed local Ollama generation. See the actual mode, trace, latency, warnings, and cited excerpts.
 4. Reject unknown citations and altered quotes. Abstain when evidence is weak. Exclude known untrusted notes from generation; adversarial tests show limits.
 5. Keep incident-specific drafts across switches/reloads, save notes with evidence references, and find older runs through filtered, paginated history.
 6. Run a real evaluation suite and inspect each pass/failure, not just a score.
 7. Export individual runs or an incident handoff in Markdown or JSON. Handoffs include saved notes, source provenance, limitations and explicit inclusion/omission counts. Restart the app and retain saved work in SQLite.
+8. Maintain hypotheses with analyst status, evidence for and against, a next check, and revision history. Reject stale edits from other tabs. Include the latest hypothesis state in handoffs without treating it as established evidence.
+9. Explain retrieval using a read-only inspector: query tokens, coverage gate, source scores/ranks, focused boosts, and exclusion reasons come from the same scorer as investigations.
 
 No real incident integrations, autonomous remediation, multi-user authentication, production-grade security claim, remote model API, or paid service is in v1.
 
