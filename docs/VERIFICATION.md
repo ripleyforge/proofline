@@ -124,3 +124,21 @@ reload/discard, malformed storage, reference pruning and blocked storage. Draft
 storage keeps authored fields plus an edit ID/revision; it never replaces the
 SQLite ledger as the authoritative saved record. Final delivery CI and independent
 review apply to the pull-request candidate that includes these observations.
+
+The independent integrated review of `cdf69e4` reproduced a duplicate-creation
+race when an investigator returned to an incident before its save acknowledgment.
+Fix `27cd2051df7426e3e7e19ef87353f96ee16ab591` keeps the pending write across
+panel remounts and reconciles its saved record with any newer draft. Both new
+regressions cover delayed acknowledgment: an older list response and a list that
+already contains the committed record. They check record identity, revision
+progression, totals and preserved newer edits. The integrated **28 reasoning and
+workspace-restoration browser tests passed** after the fix, as did the production
+frontend build. The complete browser suite now contains **50 tests** and runs in
+the required delivery CI. Earlier complete-gate observations above remain tied to
+their original candidates.
+
+The [independent reasoning review](reviews/2026-09-24-reasoning.md) approved the
+affected-path recheck of `27cd205` with no open findings. Its separate live
+create/remount and update/remount checks confirmed single-record identity,
+preserved newer edits and correct revision progression. The review server used
+an isolated synthetic database and was stopped afterward.

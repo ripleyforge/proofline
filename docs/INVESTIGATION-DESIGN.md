@@ -48,6 +48,14 @@ SQLite read snapshot as runs and notes. Old runs/notes/evaluations remain intact
 Database schema is additive; use atomic version-checked appends. Never import
 hypotheses into source evidence or retrieve them as established facts.
 
+Hypothesis drafts retain authored fields and the edit ID/revision in tab-scoped
+session storage. A feature-local pending-save registry survives panel unmounts
+within the current page, allowing one pending write per incident. Completion
+clears only the submitted contents; newer edits remain a draft of the saved
+record's next revision. The mounted panel reconciles the result and supersedes
+older list reads. Page reloads retain drafts but do not provide distributed
+idempotency for an interrupted write. SQLite remains authoritative.
+
 ## Retrieval inspection contract
 
 POST `/api/retrieval/inspect`, body `{incident_id,question}` (same question limits
