@@ -7,12 +7,7 @@
     "status": "monitoring",
     "start_time": "2026-04-14T14:02:00Z",
     "summary": "In this synthetic Aster Goods scenario, checkout failures and payment request volume rose within minutes of a payment-client retry configuration change. The payment gateway remained within its recorded service indicators, and the signals recovered after the retry policy was restored.",
-    "tags": [
-      "checkout",
-      "payments",
-      "retry",
-      "configuration"
-    ],
+    "tags": ["checkout", "payments", "retry", "configuration"],
     "evidence_count": 12,
     "evidence": [
       {
@@ -142,30 +137,12 @@
         "unit": "percent",
         "threshold": 2.0,
         "points": [
-          {
-            "time": "2026-04-14T13:55:00Z",
-            "value": 0.7
-          },
-          {
-            "time": "2026-04-14T14:03:00Z",
-            "value": 1.5
-          },
-          {
-            "time": "2026-04-14T14:07:00Z",
-            "value": 8.6
-          },
-          {
-            "time": "2026-04-14T14:12:00Z",
-            "value": 9.1
-          },
-          {
-            "time": "2026-04-14T14:17:00Z",
-            "value": 4.0
-          },
-          {
-            "time": "2026-04-14T14:21:00Z",
-            "value": 1.1
-          }
+          {"time": "2026-04-14T13:55:00Z", "value": 0.7},
+          {"time": "2026-04-14T14:03:00Z", "value": 1.5},
+          {"time": "2026-04-14T14:07:00Z", "value": 8.6},
+          {"time": "2026-04-14T14:12:00Z", "value": 9.1},
+          {"time": "2026-04-14T14:17:00Z", "value": 4.0},
+          {"time": "2026-04-14T14:21:00Z", "value": 1.1}
         ]
       },
       {
@@ -173,30 +150,12 @@
         "unit": "ratio",
         "threshold": 1.5,
         "points": [
-          {
-            "time": "2026-04-14T13:55:00Z",
-            "value": 1.03
-          },
-          {
-            "time": "2026-04-14T14:03:00Z",
-            "value": 1.41
-          },
-          {
-            "time": "2026-04-14T14:07:00Z",
-            "value": 3.87
-          },
-          {
-            "time": "2026-04-14T14:12:00Z",
-            "value": 4.02
-          },
-          {
-            "time": "2026-04-14T14:17:00Z",
-            "value": 2.31
-          },
-          {
-            "time": "2026-04-14T14:21:00Z",
-            "value": 1.08
-          }
+          {"time": "2026-04-14T13:55:00Z", "value": 1.03},
+          {"time": "2026-04-14T14:03:00Z", "value": 1.41},
+          {"time": "2026-04-14T14:07:00Z", "value": 3.87},
+          {"time": "2026-04-14T14:12:00Z", "value": 4.02},
+          {"time": "2026-04-14T14:17:00Z", "value": 2.31},
+          {"time": "2026-04-14T14:21:00Z", "value": 1.08}
         ]
       },
       {
@@ -204,72 +163,21 @@
         "unit": "milliseconds",
         "threshold": 400,
         "points": [
-          {
-            "time": "2026-04-14T13:55:00Z",
-            "value": 188
-          },
-          {
-            "time": "2026-04-14T14:03:00Z",
-            "value": 190
-          },
-          {
-            "time": "2026-04-14T14:07:00Z",
-            "value": 194
-          },
-          {
-            "time": "2026-04-14T14:12:00Z",
-            "value": 193
-          },
-          {
-            "time": "2026-04-14T14:17:00Z",
-            "value": 191
-          },
-          {
-            "time": "2026-04-14T14:21:00Z",
-            "value": 189
-          }
+          {"time": "2026-04-14T13:55:00Z", "value": 188},
+          {"time": "2026-04-14T14:03:00Z", "value": 190},
+          {"time": "2026-04-14T14:07:00Z", "value": 194},
+          {"time": "2026-04-14T14:12:00Z", "value": 193},
+          {"time": "2026-04-14T14:17:00Z", "value": 191},
+          {"time": "2026-04-14T14:21:00Z", "value": 189}
         ]
       }
     ],
     "services": [
-      {
-        "id": "storefront",
-        "label": "Storefront",
-        "status": "healthy",
-        "upstream": []
-      },
-      {
-        "id": "checkout-api",
-        "label": "Checkout API",
-        "status": "degraded",
-        "upstream": [
-          "storefront"
-        ]
-      },
-      {
-        "id": "payment-client",
-        "label": "Payment Client",
-        "status": "degraded",
-        "upstream": [
-          "checkout-api"
-        ]
-      },
-      {
-        "id": "payment-gateway",
-        "label": "Payment Gateway",
-        "status": "healthy",
-        "upstream": [
-          "payment-client"
-        ]
-      },
-      {
-        "id": "order-store",
-        "label": "Order Store",
-        "status": "healthy",
-        "upstream": [
-          "checkout-api"
-        ]
-      }
+      {"id": "storefront", "label": "Storefront", "status": "healthy", "upstream": []},
+      {"id": "checkout-api", "label": "Checkout API", "status": "degraded", "upstream": ["storefront"]},
+      {"id": "payment-client", "label": "Payment Client", "status": "degraded", "upstream": ["checkout-api"]},
+      {"id": "payment-gateway", "label": "Payment Gateway", "status": "healthy", "upstream": ["payment-client"]},
+      {"id": "order-store", "label": "Order Store", "status": "healthy", "upstream": ["checkout-api"]}
     ],
     "suggested_questions": [
       "How did payment attempts per checkout change after the retry policy update?",
@@ -285,12 +193,7 @@
     "status": "monitoring",
     "start_time": "2026-05-03T09:00:00Z",
     "summary": "In this synthetic Aster Goods scenario, warehouse inventory lag rose after event-consumer concurrency was reduced and batch size increased. Consumer throughput fell below ingress while database latency and utilization remained healthy, and lag recovered after the consumer settings were restored.",
-    "tags": [
-      "inventory",
-      "warehouse",
-      "consumer",
-      "lag"
-    ],
+    "tags": ["inventory", "warehouse", "consumer", "lag"],
     "evidence_count": 12,
     "evidence": [
       {
@@ -420,30 +323,12 @@
         "unit": "seconds",
         "threshold": 120,
         "points": [
-          {
-            "time": "2026-05-03T08:50:00Z",
-            "value": 12
-          },
-          {
-            "time": "2026-05-03T09:03:00Z",
-            "value": 180
-          },
-          {
-            "time": "2026-05-03T09:07:00Z",
-            "value": 310
-          },
-          {
-            "time": "2026-05-03T09:13:00Z",
-            "value": 438
-          },
-          {
-            "time": "2026-05-03T09:23:00Z",
-            "value": 71
-          },
-          {
-            "time": "2026-05-03T09:30:00Z",
-            "value": 16
-          }
+          {"time": "2026-05-03T08:50:00Z", "value": 12},
+          {"time": "2026-05-03T09:03:00Z", "value": 180},
+          {"time": "2026-05-03T09:07:00Z", "value": 310},
+          {"time": "2026-05-03T09:13:00Z", "value": 438},
+          {"time": "2026-05-03T09:23:00Z", "value": 71},
+          {"time": "2026-05-03T09:30:00Z", "value": 16}
         ]
       },
       {
@@ -451,30 +336,12 @@
         "unit": "events_per_minute",
         "threshold": 800,
         "points": [
-          {
-            "time": "2026-05-03T08:50:00Z",
-            "value": 920
-          },
-          {
-            "time": "2026-05-03T09:03:00Z",
-            "value": 410
-          },
-          {
-            "time": "2026-05-03T09:07:00Z",
-            "value": 245
-          },
-          {
-            "time": "2026-05-03T09:13:00Z",
-            "value": 238
-          },
-          {
-            "time": "2026-05-03T09:23:00Z",
-            "value": 870
-          },
-          {
-            "time": "2026-05-03T09:30:00Z",
-            "value": 905
-          }
+          {"time": "2026-05-03T08:50:00Z", "value": 920},
+          {"time": "2026-05-03T09:03:00Z", "value": 410},
+          {"time": "2026-05-03T09:07:00Z", "value": 245},
+          {"time": "2026-05-03T09:13:00Z", "value": 238},
+          {"time": "2026-05-03T09:23:00Z", "value": 870},
+          {"time": "2026-05-03T09:30:00Z", "value": 905}
         ]
       },
       {
@@ -482,72 +349,21 @@
         "unit": "milliseconds",
         "threshold": 80,
         "points": [
-          {
-            "time": "2026-05-03T08:50:00Z",
-            "value": 18
-          },
-          {
-            "time": "2026-05-03T09:03:00Z",
-            "value": 20
-          },
-          {
-            "time": "2026-05-03T09:07:00Z",
-            "value": 22
-          },
-          {
-            "time": "2026-05-03T09:13:00Z",
-            "value": 21
-          },
-          {
-            "time": "2026-05-03T09:23:00Z",
-            "value": 20
-          },
-          {
-            "time": "2026-05-03T09:30:00Z",
-            "value": 19
-          }
+          {"time": "2026-05-03T08:50:00Z", "value": 18},
+          {"time": "2026-05-03T09:03:00Z", "value": 20},
+          {"time": "2026-05-03T09:07:00Z", "value": 22},
+          {"time": "2026-05-03T09:13:00Z", "value": 21},
+          {"time": "2026-05-03T09:23:00Z", "value": 20},
+          {"time": "2026-05-03T09:30:00Z", "value": 19}
         ]
       }
     ],
     "services": [
-      {
-        "id": "order-events",
-        "label": "Order Events",
-        "status": "healthy",
-        "upstream": []
-      },
-      {
-        "id": "event-broker",
-        "label": "Event Broker",
-        "status": "healthy",
-        "upstream": [
-          "order-events"
-        ]
-      },
-      {
-        "id": "inventory-consumer",
-        "label": "Inventory Consumer",
-        "status": "degraded",
-        "upstream": [
-          "event-broker"
-        ]
-      },
-      {
-        "id": "inventory-db",
-        "label": "Inventory Database",
-        "status": "healthy",
-        "upstream": [
-          "inventory-consumer"
-        ]
-      },
-      {
-        "id": "warehouse-availability",
-        "label": "Warehouse Availability",
-        "status": "degraded",
-        "upstream": [
-          "inventory-consumer"
-        ]
-      }
+      {"id": "order-events", "label": "Order Events", "status": "healthy", "upstream": []},
+      {"id": "event-broker", "label": "Event Broker", "status": "healthy", "upstream": ["order-events"]},
+      {"id": "inventory-consumer", "label": "Inventory Consumer", "status": "degraded", "upstream": ["event-broker"]},
+      {"id": "inventory-db", "label": "Inventory Database", "status": "healthy", "upstream": ["inventory-consumer"]},
+      {"id": "warehouse-availability", "label": "Warehouse Availability", "status": "degraded", "upstream": ["inventory-consumer"]}
     ],
     "suggested_questions": [
       "Which consumer settings changed before inventory lag rose?",
@@ -563,12 +379,7 @@
     "status": "investigating",
     "start_time": "2026-06-18T18:12:00Z",
     "summary": "In this synthetic Aster Goods scenario, duplicate shipment notifications appeared during a replay of fulfillment events. Replayed records lacked the idempotency key used by the dispatcher, while provider transport retries stayed at zero; pausing the replay reduced duplicate sends.",
-    "tags": [
-      "shipment",
-      "notifications",
-      "replay",
-      "idempotency"
-    ],
+    "tags": ["shipment", "notifications", "replay", "idempotency"],
     "evidence_count": 12,
     "evidence": [
       {
@@ -698,30 +509,12 @@
         "unit": "percent",
         "threshold": 1.0,
         "points": [
-          {
-            "time": "2026-06-18T18:05:00Z",
-            "value": 0.1
-          },
-          {
-            "time": "2026-06-18T18:13:00Z",
-            "value": 1.8
-          },
-          {
-            "time": "2026-06-18T18:18:00Z",
-            "value": 7.4
-          },
-          {
-            "time": "2026-06-18T18:24:00Z",
-            "value": 8.1
-          },
-          {
-            "time": "2026-06-18T18:30:00Z",
-            "value": 3.2
-          },
-          {
-            "time": "2026-06-18T18:35:00Z",
-            "value": 0.4
-          }
+          {"time": "2026-06-18T18:05:00Z", "value": 0.1},
+          {"time": "2026-06-18T18:13:00Z", "value": 1.8},
+          {"time": "2026-06-18T18:18:00Z", "value": 7.4},
+          {"time": "2026-06-18T18:24:00Z", "value": 8.1},
+          {"time": "2026-06-18T18:30:00Z", "value": 3.2},
+          {"time": "2026-06-18T18:35:00Z", "value": 0.4}
         ]
       },
       {
@@ -729,30 +522,12 @@
         "unit": "ratio",
         "threshold": 1.01,
         "points": [
-          {
-            "time": "2026-06-18T18:05:00Z",
-            "value": 1.001
-          },
-          {
-            "time": "2026-06-18T18:13:00Z",
-            "value": 1.018
-          },
-          {
-            "time": "2026-06-18T18:18:00Z",
-            "value": 1.074
-          },
-          {
-            "time": "2026-06-18T18:24:00Z",
-            "value": 1.081
-          },
-          {
-            "time": "2026-06-18T18:30:00Z",
-            "value": 1.032
-          },
-          {
-            "time": "2026-06-18T18:35:00Z",
-            "value": 1.004
-          }
+          {"time": "2026-06-18T18:05:00Z", "value": 1.001},
+          {"time": "2026-06-18T18:13:00Z", "value": 1.018},
+          {"time": "2026-06-18T18:18:00Z", "value": 1.074},
+          {"time": "2026-06-18T18:24:00Z", "value": 1.081},
+          {"time": "2026-06-18T18:30:00Z", "value": 1.032},
+          {"time": "2026-06-18T18:35:00Z", "value": 1.004}
         ]
       },
       {
@@ -760,73 +535,21 @@
         "unit": "retries_per_minute",
         "threshold": 5,
         "points": [
-          {
-            "time": "2026-06-18T18:05:00Z",
-            "value": 0
-          },
-          {
-            "time": "2026-06-18T18:13:00Z",
-            "value": 0
-          },
-          {
-            "time": "2026-06-18T18:18:00Z",
-            "value": 0
-          },
-          {
-            "time": "2026-06-18T18:24:00Z",
-            "value": 0
-          },
-          {
-            "time": "2026-06-18T18:30:00Z",
-            "value": 0
-          },
-          {
-            "time": "2026-06-18T18:35:00Z",
-            "value": 0
-          }
+          {"time": "2026-06-18T18:05:00Z", "value": 0},
+          {"time": "2026-06-18T18:13:00Z", "value": 0},
+          {"time": "2026-06-18T18:18:00Z", "value": 0},
+          {"time": "2026-06-18T18:24:00Z", "value": 0},
+          {"time": "2026-06-18T18:30:00Z", "value": 0},
+          {"time": "2026-06-18T18:35:00Z", "value": 0}
         ]
       }
     ],
     "services": [
-      {
-        "id": "fulfillment-api",
-        "label": "Fulfillment API",
-        "status": "healthy",
-        "upstream": []
-      },
-      {
-        "id": "event-broker",
-        "label": "Event Broker",
-        "status": "healthy",
-        "upstream": [
-          "fulfillment-api"
-        ]
-      },
-      {
-        "id": "replay-worker",
-        "label": "Replay Worker",
-        "status": "degraded",
-        "upstream": [
-          "event-broker"
-        ]
-      },
-      {
-        "id": "notification-dispatcher",
-        "label": "Notification Dispatcher",
-        "status": "degraded",
-        "upstream": [
-          "event-broker",
-          "replay-worker"
-        ]
-      },
-      {
-        "id": "message-provider",
-        "label": "Message Provider",
-        "status": "healthy",
-        "upstream": [
-          "notification-dispatcher"
-        ]
-      }
+      {"id": "fulfillment-api", "label": "Fulfillment API", "status": "healthy", "upstream": []},
+      {"id": "event-broker", "label": "Event Broker", "status": "healthy", "upstream": ["fulfillment-api"]},
+      {"id": "replay-worker", "label": "Replay Worker", "status": "degraded", "upstream": ["event-broker"]},
+      {"id": "notification-dispatcher", "label": "Notification Dispatcher", "status": "degraded", "upstream": ["event-broker", "replay-worker"]},
+      {"id": "message-provider", "label": "Message Provider", "status": "healthy", "upstream": ["notification-dispatcher"]}
     ],
     "suggested_questions": [
       "What happened when replayed shipment events lacked idempotency keys?",
