@@ -18,5 +18,5 @@ for route in ["/api/health", "/api/config", "/api/incidents"]:
         if route == "/api/health":
             assert result["status"] == "ok"
         if route == "/api/incidents":
-            assert len(result) == 3
+            assert len(result) == 4
         print(f"PASS {route}")

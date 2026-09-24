@@ -25,13 +25,16 @@ Choose an incident, open a source, and try a suggested question. The [five-minut
 
 ## What you can do
 
-- Investigate three operational incidents through metrics, dependencies, changes, logs, and runbooks.
+- Investigate four operational incidents through metrics, dependencies, changes, logs, and runbooks.
 - Compare BM25 and focused retrieval, inspect the steps and timing, and follow each source link.
 - Switch between exact evidence extracts and optional local model prose without hidden fallbacks.
 - Test unsupported questions, known untrusted evidence and citation failures in the evaluation lab.
 - Keep unfinished questions and notes while switching incidents or reloading the same browser tab.
 - Search and filter paginated run history; open a full result only when needed.
 - Export a single run or an incident handoff containing saved runs, notes, source references, and explicit coverage counts.
+- Compare two sources side by side, keeping their observation times and trust labels visible.
+- Record competing hypotheses with supporting/challenging evidence, next checks, and immutable revision history.
+- Inspect why BM25 and focused retrieval select different sources, without invoking a model or saving another run.
 
 Preview the [searchable run history](docs/images/run-history.png), or follow the [demo walkthrough](docs/DEMO.md).
 

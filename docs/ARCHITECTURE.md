@@ -8,12 +8,12 @@ flowchart LR
   Retrieval --> Corpus[Validated synthetic evidence]
   Service --> Generator[Extractive or local Ollama generator]
   Generator --> Validator[Source and quote validator]
-  Validator --> Store[(SQLite runs and notes)]
+  Validator --> Store[(SQLite runs, notes and hypothesis revisions)]
   API --> Eval[Deterministic evaluation runner]
   API --> Export[Markdown / JSON evidence export]
 ```
 
-Domain independent of HTTP. Retrieval, generation and persistence have small injected interfaces because those are actual substitution and test seams. Validation happens after generation. Invalid claims are dropped and disclosed; no supported claims means abstention. Evidence is scoped before ranking.
+Domain independent of HTTP. Retrieval, generation and persistence have small injected interfaces because those are actual substitution and test seams. Validation happens after generation. Invalid claims are dropped and disclosed; no claims passing source/quote checks means abstention. Evidence is scoped before ranking.
 
 BM25 is a transparent lexical baseline, suitable for a compact technical corpus. Focused retrieval adds documented incident-context priors, not vector embeddings. Keeping a baseline exposes whether extra policy improves the test set. SQLite fits one local user; no database subscription. React and TypeScript provide a typed interactive UI; Python makes evaluation/retrieval straightforward to inspect. No orchestration framework is needed.
 
@@ -38,3 +38,9 @@ Tokenization lowercases alphanumerics and removes a fixed stopword set. Both pol
 ## Reference documentation
 
 [Ollama local-only operation](https://docs.ollama.com/faq#how-do-i-disable-ollama-cloud-features), [Ollama structured output API](https://docs.ollama.com/api/generate), [GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions), and [GitHub budget enforcement](https://docs.github.com/en/billing/concepts/budgets-and-alerts) informed provider boundaries. Local readbacks, not a free-tier assumption, established the configured model and existing zero-dollar budget.
+
+## Analyst reasoning and retrieval inspection
+
+Hypotheses are a separate user-authored ledger; they never become retrieval evidence. Each edit stores a full immutable revision, while a current-record projection supports bounded listing and incident exports. An atomic expected-revision check rejects stale edits with HTTP 409; the browser retains the unsaved edit for comparison before an explicit reload. Database schema 2 adds the ledger without rewriting existing records. Handoff schema 2 includes the latest 50 current hypotheses and coverage counts in the same read snapshot as investigations and notes.
+
+Read-only retrieval inspection uses the same BM25 scorer as normal investigations and explains both policies in one response. Document frequencies are computed once per query rather than rescanning the corpus for every term of each candidate. No persistent cache, model call, or investigation record is needed. Untrusted sources appear only as excluded candidates and cannot affect scoring statistics. Visual source comparison is user-directed; it does not claim automatic conflict detection. See [design and contracts](INVESTIGATION-DESIGN.md).

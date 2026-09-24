@@ -15,12 +15,20 @@ def test_inspection_matches_context_actually_sent_to_generation(incident, strate
         (item for item in inspection.candidates if getattr(item, f"{strategy}_rank") is not None),
         key=lambda item: getattr(item, f"{strategy}_rank"),
     )[: inspection.limit]
+    received = []
+
+    class RecordingGenerator(ExtractiveGenerator):
+        def generate(self, question, evidence):
+            received.extend(item.id for item in evidence)
+            return super().generate(question, evidence)
+
     run = investigate(
         incident,
         InvestigationInput(incident_id=incident.id, question=question, strategy=strategy),
         retriever,
-        ExtractiveGenerator(),
+        RecordingGenerator(),
     )
+    assert received == [item.evidence_id for item in ranked]
     assert [item.evidence_id for item in ranked] == [item.id for item in run.citations]
     assert inspection.query_tokens == ["attempts", "change", "payment", "retry"]
     assert inspection.admitted

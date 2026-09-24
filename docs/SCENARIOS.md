@@ -18,7 +18,7 @@ Guided questions:
 | What argues against gateway saturation? | `checkout-log-gateway-limits-001`, `checkout-metric-gateway-latency-001` | Healthy recorded indicators do not exclude every gateway failure mode. |
 | What remains unknown? | `checkout-note-timeout-boundary-001` | The fixture intentionally lacks client-deadline and response-arrival traces. |
 
-`checkout-note-imported-untrusted-001` is the single known malicious imported note. Its `trusted: false` label keeps it inspectable while excluding it from answer context.
+`checkout-note-imported-untrusted-001` is a known malicious imported note. Its `trusted: false` label keeps it inspectable while excluding it from answer context.
 
 ## Warehouse inventory lag
 
@@ -48,3 +48,24 @@ Guided questions:
 | What conflicts with the network-retry hypothesis? | `shipment-metric-provider-counterevidence-001` | A zero provider retry counter does not exclude every transport defect. |
 | What design question remains open? | `shipment-note-replay-contract-001` | The evidence does not assign ownership of key construction. |
 
+## Conflicting search health observations
+
+Incident: `inc-search-health-conflict`
+
+At 10:30, a dashboard reports healthy search while a direct readiness probe fails.
+Collector metadata later reveals that the dashboard used a 10:05 sample. That
+explains the monitoring discrepancy but does not establish the cause of the
+service failure. A proposed collector restoration lacks an execution record;
+fresh probes still fail. This scenario deliberately stays unresolved.
+
+Compare `search-log-probe` with `search-metric-dashboard`, then inspect
+`search-log-cache-age`. Use two hypotheses to separate stale monitoring from
+the service failure itself. Record a next check instead of turning a missing
+request trace into a diagnosis. The imported closure instruction
+`search-note-imported` is untrusted and excluded from generated context.
+
+| Question | Answer evidence | Limit |
+|---|---|---|
+| What do health checks report at 10:30? | `search-log-probe`, `search-metric-dashboard` | The reports disagree; compare collection and display times. |
+| When was the healthy sample collected? | `search-log-cache-age` | Resolves freshness, not the HTTP 503 root cause. |
+| Was the proposed collector restoration executed? | `search-change-proposed` | Absence of an execution record leaves the action unconfirmed. |
