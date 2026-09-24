@@ -17,6 +17,7 @@ Proofline is a local incident investigation and evidence workbench for a fiction
 | Capability | Owner / paths | Dependencies | Verification |
 |---|---|---|---|
 | Evidence, retrieval, generation, API | `backend/proofline/` | `data/`, SQLite, optional local Ollama | `uv run --project backend pytest backend/tests` |
+| Hypotheses and retrieval inspection | `backend/proofline/models.py`, `storage.py`, `inspection.py`, `retrieval.py`, `export.py` | SQLite schema 2; incident evidence; HTTP routes in `app.py`; UI reasoning panels | `test_hypotheses.py`, `test_inspection.py`, browser reasoning workflows |
 | Investigation interface | `frontend/src/` | HTTP contract `docs/API.md` | frontend typecheck/build, browser suite |
 | Synthetic fixtures and evaluation cases | `data/` | API contract | backend fixture validation and eval suite |
 | Delivery and smoke checks | `scripts/`, `.github/` | both applications | `scripts/check.sh`, `scripts/smoke.py` |
