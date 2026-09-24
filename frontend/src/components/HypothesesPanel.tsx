@@ -1,9 +1,10 @@
 import { ChevronDown, LoaderCircle, Plus } from 'lucide-react'
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { api, ApiError } from '../api'
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
+import { api } from '../api'
 import { formatDateTime } from '../format'
-import { clearSubmittedHypothesisDraft, loadHypothesisDraft, saveHypothesisDraft } from '../hypothesisDrafts'
+import { finishSubmittedHypothesisDraft, loadHypothesisDraft, sameHypothesisDraft, sameHypothesisEditTarget, saveHypothesisDraft } from '../hypothesisDrafts'
 import type { HypothesisDraftLoad, HypothesisDraftNotice, HypothesisEditTarget } from '../hypothesisDrafts'
+import { acknowledgeHypothesisSave, getHypothesisSave, startHypothesisSave, subscribeHypothesisSave } from '../hypothesisSaves'
 import type { Evidence, Hypothesis, HypothesisInput, HypothesisPage, HypothesisStatus } from '../types'
 import { EmptyState, ErrorState, LoadingState, SectionHeading } from './Primitives'
 
@@ -25,8 +26,15 @@ interface HypothesesPanelProps {
 
 // The incident-keyed parent gives every incident its own request lifetime.
 export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: HypothesesPanelProps) {
+  const subscribeSave = useCallback((listener: () => void) => subscribeHypothesisSave(incidentId, listener), [incidentId])
+  const getSave = useCallback(() => getHypothesisSave(incidentId), [incidentId])
+  const saveState = useSyncExternalStore(subscribeSave, getSave)
+  const pendingSave = saveState?.status === 'pending'
   const initialDraftRef = useRef<HypothesisDraftLoad | null>(null)
-  if (!initialDraftRef.current) initialDraftRef.current = loadHypothesisDraft(incidentId, new Set(evidence.map((item) => item.id)))
+  if (!initialDraftRef.current) {
+    initialDraftRef.current = loadHypothesisDraft(incidentId, new Set(evidence.map((item) => item.id)))
+    if (!initialDraftRef.current.draft && saveState?.status === 'pending') initialDraftRef.current.draft = saveState.submitted
+  }
   const [page, setPage] = useState<HypothesisPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -75,9 +83,8 @@ export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: Hypoth
     return () => { requestRef.current += 1 }
   }, [load])
 
-  const editingId = editing?.id
   const editorOpen = draft !== null
-  useEffect(() => { if (editorOpen) editorRef.current?.focus() }, [editorOpen, editingId])
+  useEffect(() => { if (editorOpen) editorRef.current?.focus() }, [editorOpen])
 
   const startEdit = (hypothesis?: Hypothesis) => {
     updateDraft(hypothesis ? authoredInput(hypothesis) : emptyDraft(), hypothesis ? { id: hypothesis.id, revision: hypothesis.revision } : null)
@@ -86,42 +93,49 @@ export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: Hypoth
     setNotice(null)
   }
 
-  const mergeSaved = (saved: Hypothesis, created: boolean) => setPage((current) => ({
-    total: (current?.total ?? 0) + (created ? 1 : 0),
-    items: [saved, ...(current?.items ?? []).filter((item) => item.id !== saved.id)].slice(0, 100),
-  }))
-
-  const save = async (event: React.FormEvent) => {
-    event.preventDefault()
-    if (!draft || !draft.statement.trim() || saving || conflict || loading || loadError) return
-    const requestId = ++requestRef.current
-    const submitted = { input: draft, editing }
-    setSaving(true)
-    setError(null)
-    try {
-      // Send only the authored input, never incidental server metadata.
-      const input: HypothesisInput = {
-        statement: draft.statement.trim(), status: draft.status, rationale: draft.rationale,
-        next_check: draft.next_check, supporting_evidence_ids: draft.supporting_evidence_ids,
-        challenging_evidence_ids: draft.challenging_evidence_ids,
-      }
-      const saved = editing
-        ? await api.updateHypothesis(incidentId, editing.id, { ...input, expected_revision: editing.revision })
-        : await api.createHypothesis(incidentId, input)
-      const cleared = clearSubmittedHypothesisDraft(incidentId, submitted)
-      if (requestRef.current !== requestId) return
-      if (!cleared) setDraftNotice('unavailable')
-      mergeSaved(saved, !editing)
-      setDraft(null)
-      setEditing(null)
-      setNotice(`Hypothesis saved as revision ${saved.revision}.`)
-    } catch (cause) {
-      if (requestRef.current !== requestId) return
-      if (cause instanceof ApiError && cause.status === 409) setConflict(true)
-      else setError(messageFrom(cause))
-    } finally {
-      if (requestRef.current === requestId) setSaving(false)
+  const mergeSaved = useCallback((saved: Hypothesis, created: boolean) => setPage((current) => {
+    const existing = current?.items.find((item) => item.id === saved.id)
+    const items = [existing && existing.revision > saved.revision ? existing : saved, ...(current?.items ?? []).filter((item) => item.id !== saved.id)].slice(0, 100)
+    return {
+      total: Math.max((current?.total ?? 0) + (created && !existing ? 1 : 0), items.length),
+      items,
     }
+  }), [])
+
+  useEffect(() => {
+    if (!saveState || saveState.status === 'pending') return
+    if (saveState.status === 'succeeded') {
+      const { saved, submitted } = saveState
+      const sameTarget = draft && sameHypothesisEditTarget(editing, submitted.editing)
+      const unchanged = sameTarget && sameHypothesisDraft({ input: draft, editing }, submitted)
+      if (unchanged) {
+        setDraft(null)
+        setEditing(null)
+        if (!finishSubmittedHypothesisDraft(incidentId, submitted, saved)) setDraftNotice('unavailable')
+      } else if (sameTarget) {
+        // Edits made while the write was pending belong to the newly saved
+        // record. Keep their contents and use its revision on the next save.
+        const target = { id: saved.id, revision: saved.revision }
+        setEditing(target)
+        if (!saveHypothesisDraft(incidentId, { input: draft, editing: target })) setDraftNotice('unavailable')
+      }
+      if (!saveState.storageAvailable) setDraftNotice('unavailable')
+      mergeSaved(saved, !submitted.editing)
+      setNotice(`Hypothesis saved as revision ${saved.revision}.${sameTarget && !unchanged ? ' Your newer edits remain unsaved in the editor.' : ''}`)
+      // This new read supersedes any list read begun before the save completed.
+      void load()
+    } else {
+      setConflict(saveState.conflict)
+      if (!saveState.conflict) setError(saveState.message)
+    }
+    acknowledgeHypothesisSave(incidentId, saveState)
+  }, [draft, editing, incidentId, load, mergeSaved, saveState])
+
+  const save = (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!draft || !draft.statement.trim() || saving || pendingSave || conflict || loading || loadError) return
+    setError(null)
+    startHypothesisSave(incidentId, { input: draft, editing })
   }
 
   const reloadSaved = async () => {
@@ -161,8 +175,9 @@ export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: Hypoth
   return (
     <section id="hypotheses-board" tabIndex={-1} className="panel hypotheses-panel" aria-label="Hypothesis board">
       <SectionHeading title="Hypotheses" description="Record explanations to test. Every status is your judgment, not a model finding."
-        action={<button type="button" className="secondary-button" disabled={loading || !!draft || !!loadError} onClick={() => startEdit()}><Plus size={16} />Add hypothesis</button>} />
+        action={<button type="button" className="secondary-button" disabled={loading || pendingSave || !!draft || !!loadError} onClick={() => startEdit()}><Plus size={16} />Add hypothesis</button>} />
       {notice && <p className="reasoning-notice" role="status">{notice}</p>}
+      {pendingSave && <p className="reasoning-notice" role="status">Saving this hypothesis. You can keep editing; newer edits will remain in your draft.</p>}
       {draftNotice && <p className="reasoning-notice" role="status">{draftNotices[draftNotice]}</p>}
       {draft && <form className="hypothesis-form" onSubmit={save}>
         <h3>{editing ? `Edit hypothesis · revision ${editing.revision}` : 'New hypothesis'}</h3>
@@ -191,10 +206,12 @@ export function HypothesesPanel({ incidentId, evidence, onOpenEvidence }: Hypoth
         </fieldset>
         {conflict && <div className="hypothesis-conflict" role="alert"><p>A newer revision was saved elsewhere. Your unsaved draft is preserved in the editor; copy anything you want to keep before reloading. Reload replaces the editor with the latest saved version.</p><button type="button" className="secondary-button" disabled={saving} onClick={() => void reloadSaved()}>Reload saved version</button></div>}
         {error && <p className="form-error" role="alert">{error}</p>}
-        <div className="hypothesis-form-actions"><button type="submit" className="primary-button" disabled={saving || conflict || loading || !!loadError || !draft.statement.trim()}>{saving ? <><LoaderCircle className="spin" size={16} />Saving</> : 'Save hypothesis'}</button>
-          <button type="button" className="secondary-button" disabled={saving} onClick={() => { updateDraft(null, null); setError(null); setConflict(false) }}>Discard edit</button></div>
+        <div className="hypothesis-form-actions"><button type="submit" className="primary-button" disabled={saving || pendingSave || conflict || loading || !!loadError || !draft.statement.trim()}>{saving || pendingSave ? <><LoaderCircle className="spin" size={16} />Saving</> : 'Save hypothesis'}</button>
+          <button type="button" className="secondary-button" disabled={saving || pendingSave} onClick={() => { updateDraft(null, null); setError(null); setConflict(false) }}>Discard edit</button></div>
       </form>}
-      {loading ? <LoadingState label="Loading hypotheses" /> : loadError ? <ErrorState message={loadError} onRetry={() => void load()} /> : page && <>
+      {loading && !page && <LoadingState label="Loading hypotheses" />}
+      {loadError && <ErrorState message={loadError} onRetry={() => void load()} />}
+      {page && <>
         <p className="reasoning-count">Showing {page.items.length} of {page.total} hypotheses{page.total > page.items.length ? ' · Latest 100 only' : ''}</p>
         {page.items.length ? <div className="hypothesis-list">{page.items.map((item) => <article key={item.id} className="hypothesis-item">
           <div className="hypothesis-item-heading"><span className={`hypothesis-status ${item.status}`}>{statuses[item.status]}<span className="sr-only"> analyst judgment</span></span><small>Revision {item.revision}</small></div>

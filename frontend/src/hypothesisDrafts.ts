@@ -1,4 +1,4 @@
-import type { HypothesisInput } from './types'
+import type { Hypothesis, HypothesisInput } from './types'
 
 export interface HypothesisEditTarget { id: string; revision: number }
 export interface HypothesisDraft { input: HypothesisInput; editing: HypothesisEditTarget | null }
@@ -58,12 +58,25 @@ export function saveHypothesisDraft(incidentId: string, draft: HypothesisDraft |
   } catch { return false }
 }
 
-// A save may complete after navigation. Clear only the submitted draft, never a
-// newer edit created in this tab while that request was in flight.
-export function clearSubmittedHypothesisDraft(incidentId: string, submitted: HypothesisDraft): boolean {
+export function sameHypothesisEditTarget(left: HypothesisEditTarget | null, right: HypothesisEditTarget | null): boolean {
+  return left?.id === right?.id && left?.revision === right?.revision
+}
+
+export function sameHypothesisDraft(left: HypothesisDraft, right: HypothesisDraft): boolean {
+  return JSON.stringify(parseDraft(JSON.stringify(left))) === JSON.stringify(parseDraft(JSON.stringify(right)))
+}
+
+// Clear only the submitted contents. Newer authored changes remain a draft of
+// the record that was just saved, so their next save appends a revision.
+export function finishSubmittedHypothesisDraft(incidentId: string, submitted: HypothesisDraft, saved: Hypothesis): boolean {
   try {
     const raw = window.sessionStorage.getItem(storageKey(incidentId))
-    if (raw && JSON.stringify(parseDraft(raw)) === JSON.stringify(parseDraft(JSON.stringify(submitted)))) window.sessionStorage.removeItem(storageKey(incidentId))
+    if (!raw) return true
+    const current = parseDraft(raw)
+    if (sameHypothesisDraft(current, submitted)) window.sessionStorage.removeItem(storageKey(incidentId))
+    else if (sameHypothesisEditTarget(current.editing, submitted.editing)) {
+      return saveHypothesisDraft(incidentId, { input: current.input, editing: { id: saved.id, revision: saved.revision } })
+    }
     return true
   } catch { return false }
 }

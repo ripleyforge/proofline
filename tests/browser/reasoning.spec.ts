@@ -405,3 +405,72 @@ test('stored hypothesis drafts reject malformed data, prune foreign references, 
   await page.getByRole('button', { name: 'Save hypothesis', exact: true }).click();
   await expect(row(page, blockedStatement)).toBeVisible();
 });
+
+for (const committedBeforeReturn of [false, true]) {
+test(`a pending hypothesis save follows an incident remount${committedBeforeReturn ? ' with a committed result and newer draft' : ' with an older list read'}`, async ({ page, request }) => {
+  const { incidents, detail } = await fixture(request);
+  const statement = `Remounted pending save ${Date.now()}`;
+  let releaseSave!: () => void;
+  let saveStarted!: () => void;
+  const saveGate = new Promise<void>(resolve => { releaseSave = resolve; });
+  const saveRequested = new Promise<void>(resolve => { saveStarted = resolve; });
+  let releaseRead!: () => void;
+  let readStarted!: () => void;
+  const readGate = new Promise<void>(resolve => { releaseRead = resolve; });
+  const readRequested = new Promise<void>(resolve => { readStarted = resolve; });
+  let holdRead = false;
+  let writes = 0;
+  const endpoint = `**/api/incidents/${detail.id}/hypotheses`;
+  await page.route(endpoint, async route => {
+    if (route.request().method() === 'POST') {
+      writes += 1;
+      const actual = committedBeforeReturn ? await route.fetch() : null;
+      saveStarted();
+      await saveGate;
+      await route.fulfill({ response: actual ?? await route.fetch() });
+    } else if (holdRead) {
+      const actual = await route.fetch();
+      readStarted();
+      await readGate;
+      await route.fulfill({ response: actual });
+    } else await route.continue();
+  });
+  await page.goto('/');
+  await board(page).getByRole('button', { name: 'Add hypothesis', exact: true }).click();
+  await page.getByLabel('Hypothesis statement', { exact: true }).fill(statement);
+  await page.getByRole('button', { name: 'Save hypothesis', exact: true }).click();
+  await saveRequested;
+  await selectIncident(page, incidents[1]);
+  holdRead = !committedBeforeReturn;
+  await selectIncident(page, incidents[0]);
+  if (committedBeforeReturn) await expect(row(page, statement)).toHaveCount(1);
+  else await readRequested;
+  await expect(page.getByLabel('Hypothesis statement', { exact: true })).toHaveValue(statement);
+  await expect(page.locator('.hypothesis-form button[type="submit"]')).toBeDisabled();
+  if (committedBeforeReturn) await page.getByLabel('Rationale', { exact: true }).fill('A newer draft must survive the pending save.');
+  const savedResponse = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/hypotheses'));
+  releaseSave();
+  const saved: Hypothesis = await (await savedResponse).json();
+  if (!committedBeforeReturn) {
+    const olderRead = page.waitForResponse(response => response.request().method() === 'GET' && response.url().endsWith(`/incidents/${detail.id}/hypotheses`));
+    releaseRead();
+    await olderRead;
+  } else {
+    await expect(page.getByLabel('Rationale', { exact: true })).toHaveValue('A newer draft must survive the pending save.');
+    await expect(page.locator('.hypothesis-form h3')).toHaveText('Edit hypothesis · revision 1');
+    await expect(page.getByLabel('Rationale', { exact: true })).toBeFocused();
+    const amended = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().endsWith(`/hypotheses/${saved.id}`));
+    await page.getByRole('button', { name: 'Save hypothesis', exact: true }).click();
+    expect((await (await amended).json()).revision).toBe(2);
+  }
+  await expect(page.getByLabel('Hypothesis statement', { exact: true })).toHaveCount(0);
+  await expect(row(page, statement)).toHaveCount(1);
+  await expect(row(page, statement)).toContainText(`Revision ${committedBeforeReturn ? 2 : 1}`);
+  expect(writes).toBe(1);
+  const persisted = await (await request.get(`/api/incidents/${detail.id}/hypotheses`)).json();
+  const matching: Hypothesis[] = persisted.items.filter((item: Hypothesis) => item.statement === statement);
+  expect(matching).toHaveLength(1);
+  expect(matching[0]).toMatchObject({ id: saved.id, revision: committedBeforeReturn ? 2 : 1 });
+  await expect(board(page).locator(':scope > .reasoning-count')).toHaveText(`Showing ${persisted.items.length} of ${persisted.total} hypotheses${persisted.total > persisted.items.length ? ' · Latest 100 only' : ''}`);
+});
+}
