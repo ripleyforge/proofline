@@ -159,10 +159,11 @@ def test_brief_includes_counts_scoped_sources_and_untrusted_note_references(
     result = client.get("/api/incidents/incident-a/brief?format=json")
     assert result.status_code == 200
     brief = result.json()
-    assert brief["schema_version"] == 1 and brief["incident"]["id"] == "incident-a"
+    assert brief["schema_version"] == 2 and brief["incident"]["id"] == "incident-a"
     assert brief["coverage"] == {
         "investigations": {"included": 20, "total": 25},
         "notes": {"included": 50, "total": 55},
+        "hypotheses": {"included": 0, "total": 0},
     }
     assert brief["investigations"][0]["id"] == "incident-a-run-24"
     assert brief["notes"][0]["id"] == "note-54"
@@ -221,7 +222,7 @@ def test_old_database_is_preserved_and_global_listing_index_added(settings, inci
     reopened = SQLiteStore(settings.db_path)
     with sqlite3.connect(settings.db_path) as connection:
         assert connection.execute("SELECT * FROM records ORDER BY rowid").fetchall() == before
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
         indexes = connection.execute("PRAGMA index_list(records)").fetchall()
     assert any(row[1] == "records_global_listing" for row in indexes)
     assert len(reopened.list("investigation")) == len(store.list("investigation")) == 2

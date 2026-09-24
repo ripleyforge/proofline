@@ -6,6 +6,7 @@ import re
 from proofline.models import (
     BriefCoverage,
     CoverageCount,
+    Hypothesis,
     IncidentBrief,
     IncidentDetail,
     IncidentSummary,
@@ -68,7 +69,7 @@ def markdown(run: Investigation) -> str:
 def incident_brief(incident: IncidentDetail, snapshot: IncidentSnapshot) -> IncidentBrief:
     """Collect saved work without inference; preserve historical run citation snapshots."""
     scoped = {source.id: source for source in incident.evidence}
-    runs, notes, sources = [], [], {}
+    runs, notes, hypotheses, sources = [], [], [], {}
     excluded = False
     for raw in snapshot.investigations.items:
         run = Investigation.model_validate(raw)
@@ -102,17 +103,45 @@ def incident_brief(incident: IncidentDetail, snapshot: IncidentSnapshot) -> Inci
             # A manually referenced untrusted source must retain its current trust label.
             if source_id not in sources or not source.trusted:
                 sources[source_id] = source
+    for raw in snapshot.hypotheses.items:
+        hypothesis = Hypothesis.model_validate(raw)
+        if hypothesis.incident_id != incident.id:
+            excluded = True
+            continue
+        references = {
+            field: [source_id for source_id in getattr(hypothesis, field) if source_id in scoped]
+            for field in ("supporting_evidence_ids", "challenging_evidence_ids")
+        }
+        if any(references[field] != getattr(hypothesis, field) for field in references):
+            excluded = True
+            hypothesis = hypothesis.model_copy(update=references)
+        hypotheses.append(hypothesis)
+        for source_id in [
+            *hypothesis.supporting_evidence_ids,
+            *hypothesis.challenging_evidence_ids,
+        ]:
+            source = scoped[source_id]
+            if source_id not in sources or not source.trusted:
+                sources[source_id] = source
     limitations = [
         "This handoff records saved observations and does not synthesize a root cause.",
         LIMITATIONS,
-        "Notes are user-authored content. Manually referenced untrusted sources remain labeled "
+        "Notes and hypotheses are user-authored content. Hypothesis statuses are analyst "
+        "judgments, not verified conclusions. Manually referenced untrusted sources remain labeled "
         "trusted: false and do not become verified evidence.",
+        "Hypotheses are never added to source evidence or model context. This handoff includes "
+        "only their current revisions; full revision history remains in the local workbench.",
         "Saved local-mode prose is model output; its interpretations may be unsupported.",
-        "Run citations retain saved source snapshots; note-only references use the current corpus. "
+        "Run citations retain saved source snapshots; note and hypothesis references resolve "
+        "against the current corpus. "
         "The deduplicated source list favors the newest run snapshot, unless a manually "
         "referenced source is currently untrusted.",
     ]
-    for name, selection in (("investigations", snapshot.investigations), ("notes", snapshot.notes)):
+    for name, selection in (
+        ("investigations", snapshot.investigations),
+        ("notes", snapshot.notes),
+        ("hypotheses", snapshot.hypotheses),
+    ):
         omitted = selection.total - len(selection.items)
         if omitted:
             limitations.append(f"{omitted} older {name} omitted from this bounded handoff.")
@@ -128,9 +157,11 @@ def incident_brief(incident: IncidentDetail, snapshot: IncidentSnapshot) -> Inci
         coverage=BriefCoverage(
             investigations=CoverageCount(included=len(runs), total=snapshot.investigations.total),
             notes=CoverageCount(included=len(notes), total=snapshot.notes.total),
+            hypotheses=CoverageCount(included=len(hypotheses), total=snapshot.hypotheses.total),
         ),
         investigations=runs,
         notes=notes,
+        hypotheses=hypotheses,
         sources=list(sources.values()),
         limitations=limitations,
     )
@@ -157,6 +188,7 @@ def brief_markdown(brief: IncidentBrief) -> str:
     for name, coverage in (
         ("Investigations", brief.coverage.investigations),
         ("Notes", brief.coverage.notes),
+        ("Hypotheses", brief.coverage.hypotheses),
     ):
         lines.append(
             f"- {name}: {coverage.included} included of {coverage.total}; "
@@ -206,6 +238,43 @@ def brief_markdown(brief: IncidentBrief) -> str:
             + (", ".join(literal(item) for item in note.evidence_ids) or "none"),
             "",
         ]
+    lines += ["## Current hypotheses", ""]
+    if not brief.hypotheses:
+        lines += ["No saved hypotheses included.", ""]
+    sources = {source.id: source for source in brief.sources}
+    for hypothesis in brief.hypotheses:
+        lines += [
+            f"### Hypothesis {literal(hypothesis.id)}",
+            "",
+            f"Revision: {hypothesis.revision}; analyst status: {literal(hypothesis.status)}",
+            f"Created: {hypothesis.created_at}; updated: {hypothesis.updated_at}",
+            "",
+            "Statement:",
+            "",
+            literal(hypothesis.statement),
+            "",
+            "Rationale:",
+            "",
+            literal(hypothesis.rationale) or "Not recorded.",
+            "",
+            "Next check:",
+            "",
+            literal(hypothesis.next_check) or "Not recorded.",
+            "",
+        ]
+        for label, references in (
+            ("Supporting evidence", hypothesis.supporting_evidence_ids),
+            ("Challenging evidence", hypothesis.challenging_evidence_ids),
+        ):
+            lines.append(f"{label}:")
+            lines.append("")
+            lines.extend(
+                f"- {literal(source_id)}; trusted: {sources[source_id].trusted}"
+                for source_id in references
+            )
+            if not references:
+                lines.append("None recorded.")
+            lines.append("")
     lines += ["## Referenced sources", ""]
     for source in brief.sources:
         lines += [

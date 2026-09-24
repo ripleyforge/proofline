@@ -21,6 +21,10 @@ from proofline.models import (
     Evaluation,
     EvaluationInput,
     HistoryQuery,
+    Hypothesis,
+    HypothesisInput,
+    HypothesisPage,
+    HypothesisUpdate,
     IncidentDetail,
     IncidentSummary,
     Investigation,
@@ -31,7 +35,7 @@ from proofline.models import (
 )
 from proofline.retrieval import BM25Retriever, Retriever
 from proofline.service import investigate, now
-from proofline.storage import SQLiteStore, Store
+from proofline.storage import HypothesisConflict, HypothesisNotFound, SQLiteStore, Store
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -170,6 +174,17 @@ def create_app(
             status_code=503,
         )
 
+    @app.exception_handler(HypothesisNotFound)
+    async def hypothesis_not_found(request: Request, exc: HypothesisNotFound):
+        return JSONResponse({"detail": "Hypothesis not found."}, status_code=404)
+
+    @app.exception_handler(HypothesisConflict)
+    async def hypothesis_conflict(request: Request, exc: HypothesisConflict):
+        return JSONResponse(
+            {"detail": "This hypothesis has a newer revision. Reload it before saving your edit."},
+            status_code=409,
+        )
+
     def incident(incident_id: str) -> IncidentDetail:
         try:
             return corpus.get(incident_id)
@@ -181,6 +196,14 @@ def create_app(
         if found is None:
             raise HTTPException(404, "Investigation not found.")
         return Investigation.model_validate(found)
+
+    def hypothesis_incident(incident_id: str, body: HypothesisInput) -> IncidentDetail:
+        selected = incident(incident_id)
+        evidence_ids = {item.id for item in selected.evidence}
+        references = set(body.supporting_evidence_ids) | set(body.challenging_evidence_ids)
+        if references - evidence_ids:
+            raise HTTPException(422, "Every evidence reference must belong to this incident.")
+        return selected
 
     @app.get("/api/health")
     def health():
@@ -296,6 +319,39 @@ def create_app(
         )
         storage.save("note", note)
         return note
+
+    @app.get("/api/incidents/{incident_id}/hypotheses", response_model=HypothesisPage)
+    def list_hypotheses(incident_id: str):
+        incident(incident_id)
+        return storage.hypotheses_page(incident_id)
+
+    @app.post("/api/incidents/{incident_id}/hypotheses", response_model=Hypothesis, status_code=201)
+    def create_hypothesis(incident_id: str, body: HypothesisInput):
+        selected = hypothesis_incident(incident_id, body)
+        timestamp = now()
+        hypothesis = Hypothesis(
+            **body.model_dump(),
+            id=uuid4().hex,
+            incident_id=selected.id,
+            revision=1,
+            created_at=timestamp,
+            updated_at=timestamp,
+        )
+        storage.create_hypothesis(hypothesis)
+        return hypothesis
+
+    @app.put("/api/incidents/{incident_id}/hypotheses/{hypothesis_id}", response_model=Hypothesis)
+    def update_hypothesis(incident_id: str, hypothesis_id: str, body: HypothesisUpdate):
+        hypothesis_incident(incident_id, body)
+        return storage.revise_hypothesis(incident_id, hypothesis_id, body, now())
+
+    @app.get(
+        "/api/incidents/{incident_id}/hypotheses/{hypothesis_id}/revisions",
+        response_model=HypothesisPage,
+    )
+    def list_hypothesis_revisions(incident_id: str, hypothesis_id: str):
+        incident(incident_id)
+        return storage.hypothesis_revisions(incident_id, hypothesis_id)
 
     @app.post("/api/evaluations", response_model=Evaluation, status_code=201)
     def create_evaluation(body: EvaluationInput):

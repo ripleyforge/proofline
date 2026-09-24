@@ -6,7 +6,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Protocol
 
-from proofline.models import HistoryQuery, InvestigationPage, Model
+from proofline.models import (
+    HistoryQuery,
+    Hypothesis,
+    HypothesisPage,
+    HypothesisUpdate,
+    InvestigationPage,
+    Model,
+)
 
 RecordKind = Literal["investigation", "note", "evaluation"]
 
@@ -21,6 +28,15 @@ class RecordSelection:
 class IncidentSnapshot:
     investigations: RecordSelection
     notes: RecordSelection
+    hypotheses: RecordSelection
+
+
+class HypothesisNotFound(Exception):
+    pass
+
+
+class HypothesisConflict(Exception):
+    pass
 
 
 class Store(Protocol):
@@ -36,6 +52,16 @@ class Store(Protocol):
 
     def incident_snapshot(self, incident_id: str) -> IncidentSnapshot: ...
 
+    def create_hypothesis(self, hypothesis: Hypothesis) -> None: ...
+
+    def revise_hypothesis(
+        self, incident_id: str, hypothesis_id: str, body: HypothesisUpdate, updated_at: str
+    ) -> Hypothesis: ...
+
+    def hypotheses_page(self, incident_id: str) -> HypothesisPage: ...
+
+    def hypothesis_revisions(self, incident_id: str, hypothesis_id: str) -> HypothesisPage: ...
+
 
 class SQLiteStore:
     def __init__(self, path: Path):
@@ -43,8 +69,9 @@ class SQLiteStore:
         path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version > 1:
+            if version > 2:
                 raise ValueError("database version is newer than this application")
+            connection.execute("BEGIN IMMEDIATE")
             connection.execute(
                 "CREATE TABLE IF NOT EXISTS records ("
                 "kind TEXT NOT NULL, id TEXT PRIMARY KEY, incident_id TEXT, "
@@ -58,10 +85,26 @@ class SQLiteStore:
                 "CREATE INDEX IF NOT EXISTS records_global_listing "
                 "ON records(kind, created_at DESC)"
             )
-            connection.execute("PRAGMA user_version = 1")
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS hypotheses ("
+                "id TEXT PRIMARY KEY, incident_id TEXT NOT NULL, "
+                "revision INTEGER NOT NULL CHECK(revision >= 1), updated_at TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS hypotheses_listing "
+                "ON hypotheses(incident_id, updated_at DESC)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS hypothesis_revisions ("
+                "hypothesis_id TEXT NOT NULL REFERENCES hypotheses(id), "
+                "revision INTEGER NOT NULL CHECK(revision >= 1), payload TEXT NOT NULL, "
+                "PRIMARY KEY(hypothesis_id, revision))"
+            )
+            connection.execute("PRAGMA user_version = 2")
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path, timeout=5)
+        connection.execute("PRAGMA foreign_keys = ON")
         # SQLite's built-in lower/LIKE folds ASCII only. This scalar function keeps
         # literal Unicode search in the SQL filter without materializing history.
         connection.create_function("casefold", 1, str.casefold, deterministic=True)
@@ -142,6 +185,93 @@ class SQLiteStore:
             items=[dict(row) for row in rows], total=total, limit=query.limit, offset=query.offset
         )
 
+    def create_hypothesis(self, hypothesis: Hypothesis) -> None:
+        if hypothesis.revision != 1:
+            raise ValueError("A new hypothesis must start at revision 1.")
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                "INSERT INTO hypotheses(id,incident_id,revision,updated_at) VALUES (?,?,?,?)",
+                (hypothesis.id, hypothesis.incident_id, 1, hypothesis.updated_at),
+            )
+            connection.execute(
+                "INSERT INTO hypothesis_revisions(hypothesis_id,revision,payload) VALUES (?,?,?)",
+                (hypothesis.id, 1, hypothesis.model_dump_json()),
+            )
+
+    def revise_hypothesis(
+        self, incident_id: str, hypothesis_id: str, body: HypothesisUpdate, updated_at: str
+    ) -> Hypothesis:
+        # Hold the write reservation across reading the version, appending its successor,
+        # and moving the current pointer. A second tab can never overwrite a stale read.
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT r.payload FROM hypotheses h JOIN hypothesis_revisions r "
+                "ON r.hypothesis_id=h.id AND r.revision=h.revision "
+                "WHERE h.id=? AND h.incident_id=?",
+                (hypothesis_id, incident_id),
+            ).fetchone()
+            if row is None:
+                raise HypothesisNotFound
+            previous = Hypothesis.model_validate_json(row[0])
+            if previous.revision != body.expected_revision:
+                raise HypothesisConflict
+            revised = Hypothesis(
+                **body.model_dump(exclude={"expected_revision"}),
+                id=previous.id,
+                incident_id=previous.incident_id,
+                revision=previous.revision + 1,
+                created_at=previous.created_at,
+                updated_at=updated_at,
+            )
+            connection.execute(
+                "INSERT INTO hypothesis_revisions(hypothesis_id,revision,payload) VALUES (?,?,?)",
+                (hypothesis_id, revised.revision, revised.model_dump_json()),
+            )
+            connection.execute(
+                "UPDATE hypotheses SET revision=?,updated_at=? WHERE id=? AND incident_id=?",
+                (revised.revision, updated_at, hypothesis_id, incident_id),
+            )
+        return revised
+
+    @staticmethod
+    def _hypotheses_selection(
+        connection: sqlite3.Connection, incident_id: str, limit: int
+    ) -> RecordSelection:
+        total = connection.execute(
+            "SELECT count(*) FROM hypotheses WHERE incident_id=?", (incident_id,)
+        ).fetchone()[0]
+        rows = connection.execute(
+            "SELECT r.payload FROM hypotheses h JOIN hypothesis_revisions r "
+            "ON r.hypothesis_id=h.id AND r.revision=h.revision "
+            "WHERE h.incident_id=? ORDER BY h.updated_at DESC, h.rowid DESC LIMIT ?",
+            (incident_id, limit),
+        ).fetchall()
+        return RecordSelection([json.loads(row[0]) for row in rows], total)
+
+    def hypotheses_page(self, incident_id: str) -> HypothesisPage:
+        with self._connect() as connection:
+            connection.execute("BEGIN")
+            selection = self._hypotheses_selection(connection, incident_id, 100)
+        return HypothesisPage(items=selection.items, total=selection.total)
+
+    def hypothesis_revisions(self, incident_id: str, hypothesis_id: str) -> HypothesisPage:
+        with self._connect() as connection:
+            connection.execute("BEGIN")
+            found = connection.execute(
+                "SELECT revision FROM hypotheses WHERE id=? AND incident_id=?",
+                (hypothesis_id, incident_id),
+            ).fetchone()
+            if found is None:
+                raise HypothesisNotFound
+            rows = connection.execute(
+                "SELECT payload FROM hypothesis_revisions WHERE hypothesis_id=? "
+                "ORDER BY revision DESC LIMIT 100",
+                (hypothesis_id,),
+            ).fetchall()
+        return HypothesisPage(items=[json.loads(row[0]) for row in rows], total=found[0])
+
     def incident_snapshot(self, incident_id: str) -> IncidentSnapshot:
         selections = []
         with self._connect() as connection:
@@ -157,4 +287,7 @@ class SQLiteStore:
                     (kind, incident_id, limit),
                 ).fetchall()
                 selections.append(RecordSelection([json.loads(row[0]) for row in rows], total))
-        return IncidentSnapshot(investigations=selections[0], notes=selections[1])
+            hypotheses = self._hypotheses_selection(connection, incident_id, 50)
+        return IncidentSnapshot(
+            investigations=selections[0], notes=selections[1], hypotheses=hypotheses
+        )

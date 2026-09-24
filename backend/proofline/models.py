@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Strategy = Literal["bm25", "focused"]
 Mode = Literal["extractive", "local"]
@@ -168,6 +168,51 @@ class Note(NoteInput):
     created_at: Timestamp
 
 
+class HypothesisInput(Model):
+    statement: Annotated[str, Field(min_length=1, max_length=500)]
+    status: Literal["open", "supported", "ruled_out"]
+    rationale: Annotated[str, Field(max_length=4000)]
+    next_check: Annotated[str, Field(max_length=1000)]
+    supporting_evidence_ids: list[Identifier] = Field(max_length=30)
+    challenging_evidence_ids: list[Identifier] = Field(max_length=30)
+
+    @field_validator("statement")
+    @classmethod
+    def nonblank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("statement cannot be blank")
+        return value.strip()
+
+    @model_validator(mode="after")
+    def distinct_references(self) -> "HypothesisInput":
+        supporting = set(self.supporting_evidence_ids)
+        challenging = set(self.challenging_evidence_ids)
+        if len(supporting) != len(self.supporting_evidence_ids) or len(challenging) != len(
+            self.challenging_evidence_ids
+        ):
+            raise ValueError("Each evidence reference list must contain unique IDs.")
+        if supporting & challenging:
+            raise ValueError("An evidence source cannot both support and challenge a hypothesis.")
+        return self
+
+
+class HypothesisUpdate(HypothesisInput):
+    expected_revision: int = Field(ge=1, le=2**63 - 1, strict=True)
+
+
+class Hypothesis(HypothesisInput):
+    id: Identifier
+    incident_id: Identifier
+    revision: int = Field(ge=1)
+    created_at: Timestamp
+    updated_at: Timestamp
+
+
+class HypothesisPage(Model):
+    items: list[Hypothesis] = Field(max_length=100)
+    total: int = Field(ge=0)
+
+
 class CoverageCount(Model):
     included: int = Field(ge=0)
     total: int = Field(ge=0)
@@ -176,15 +221,17 @@ class CoverageCount(Model):
 class BriefCoverage(Model):
     investigations: CoverageCount
     notes: CoverageCount
+    hypotheses: CoverageCount
 
 
 class IncidentBrief(Model):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     generated_at: Timestamp
     incident: IncidentSummary
     coverage: BriefCoverage
     investigations: list[Investigation]
     notes: list[Note]
+    hypotheses: list[Hypothesis] = Field(max_length=50)
     sources: list[Evidence]
     limitations: list[str]
 
