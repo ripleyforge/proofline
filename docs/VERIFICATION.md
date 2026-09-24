@@ -73,3 +73,44 @@ The existing 21 browser workflows passed on the theme implementation. Broader re
 TypeScript/build, ESLint and diff checks passed. The rendered checks observed both fonts loaded locally and no external browser requests. Documentation screenshots were refreshed from synthetic preview data and visually inspected. The font binaries are byte-for-byte copies from the canonical brand kit, with their OFL licenses included; binary files are not covered by the tracked-text credential scanner.
 
 An independent coding agent approved `be37836` after exact-diff, desktop/mobile visual and focused rendered review, including the reduced-transparency fallback and keyboard table scrolling. No actionable findings remained in this UI scope. This is agent review and bounded automated accessibility evidence, not human approval or a WCAG conformance claim.
+
+
+## Analyst reasoning and workspace continuity — 2026-09-24 UTC
+
+The first integrated gate on `fbe520b` passed **160 backend tests**, **six delivery
+tests**, and **45 Chromium browser workflows**, plus Ruff, ESLint, TypeScript,
+the production build and tracked-text credential guard. The two existing
+FastAPI/Starlette deprecation warnings remain; dependencies were unchanged.
+
+Backend coverage includes atomic hypothesis revisions across two app instances,
+409 stale-edit rejection, rollback on failed pointer updates, legacy schema-1
+record preservation, restart persistence, scoped references, bounded history and
+handoff exports, escaping, and consistent snapshots across runs/notes/hypotheses.
+Retrieval inspection shares the investigation scorer and never invokes inference
+or persistence. Its tests cover context parity, tie ordering, top-five selection,
+coverage thresholds and exclusion of untrusted scoring inputs.
+
+The fourth synthetic incident exercises conflicting health observations, stale
+measurement times and a proposed action without an execution record. Both policies
+pass **28/28 authored deterministic checks** (24 retrieval/status fixtures and four
+validator attacks). This is development-fixture coverage, not held-out model
+accuracy. An independent early comparison of old/new retrieval over 2,980 query /
+policy combinations found no ordered-source mismatches; it is a regression probe,
+not a throughput benchmark.
+
+Browser coverage includes real API hypothesis save/edit/revision/handoff flows,
+a real concurrent-edit conflict, API failures and retries, late response isolation,
+source comparison focus handling, mobile overflow and serious/critical axe checks,
+and tab restoration of the exact saved run without loading full history. Reloading
+the second incident failed before the restoration implementation and passed after.
+The comparison view and hypothesis editor were visually inspected; the new
+comparison image contains only synthetic fixture data. No external browser
+requests were observed during its capture.
+
+A consistent backup passed SQLite integrity checking before the local demo's
+schema-2 startup. Schema 2 is additive; rollback to an older app uses the retained
+pre-upgrade backup, preserving the newer file separately. Local preview health,
+configuration and all four incidents passed read-only smoke checks. The repository
+remains private; live GitHub readback confirmed required main-branch CI and the
+existing $0 Actions stop-spend budget. No cloud service, model, dependency or paid
+resource was added.
