@@ -114,3 +114,13 @@ configuration and all four incidents passed read-only smoke checks. The reposito
 remains private; live GitHub readback confirmed required main-branch CI and the
 existing $0 Actions stop-spend budget. No cloud service, model, dependency or paid
 resource was added.
+
+
+After the hypothesis-draft refinement, the complete gate on `92bec11` passed
+again: **160 backend, six delivery and 48 browser tests**, with lint, typecheck,
+build and the credential guard also passing. The three added draft workflows
+cover incident/view/reload persistence, failed and conflicting saves, explicit
+reload/discard, malformed storage, reference pruning and blocked storage. Draft
+storage keeps authored fields plus an edit ID/revision; it never replaces the
+SQLite ledger as the authoritative saved record. Final delivery CI and independent
+review apply to the pull-request candidate that includes these observations.
