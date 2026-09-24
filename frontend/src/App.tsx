@@ -4,6 +4,7 @@ import { api, downloadIncidentBrief } from './api'
 import { EvidenceCenter } from './components/EvidenceCenter'
 import { EvaluationView } from './components/EvaluationView'
 import { HistoryView } from './components/HistoryView'
+import { HypothesesPanel } from './components/HypothesesPanel'
 import { IncidentQueue } from './components/IncidentQueue'
 import { InvestigationPanel } from './components/InvestigationPanel'
 import { MetricCharts } from './components/MetricChart'
@@ -310,6 +311,10 @@ export function App() {
     document.getElementById('investigation-question')?.focus()
   }
 
+  const focusHypotheses = () => {
+    document.getElementById('hypotheses-board')?.focus()
+  }
+
   if (bootLoading) return <div className="boot-screen"><div className="boot-brand">Proofline</div><LoadingState label="Connecting to the local workbench" /></div>
   if (bootError || !config) return <div className="boot-screen"><div className="boot-brand">Proofline</div><ErrorState title="Local API unavailable" message={bootError ?? 'Configuration was not returned.'} onRetry={() => void loadInitial()} /><p className="boot-help">Start the Proofline API on 127.0.0.1:8100, then retry. The interface does not substitute demo data.</p></div>
   const incidentDraft = incident ? drafts[incident.id] ?? emptyIncidentDraft : emptyIncidentDraft
@@ -323,15 +328,17 @@ export function App() {
             {!draftPersistenceAvailable && <div className="draft-storage-notice" role="status"><AlertTriangle size={16} aria-hidden="true" />Drafts cannot be saved in this browser. Keep this tab open.</div>}
             {incidentLoading ? <LoadingState label="Loading incident evidence" /> : incidentError ? <ErrorState message={incidentError} onRetry={selectedIncidentId ? () => void loadIncident(selectedIncidentId) : undefined} /> : incident ? (
               <>
-                <IncidentHeader incident={incident} onInvestigate={focusInvestigation} />
+                <IncidentHeader incident={incident} onInvestigate={focusInvestigation} onReviewHypotheses={focusHypotheses} />
                 <div className="overview-grid"><MetricCharts metrics={incident.metrics} /><ServiceMap services={incident.services} /></div>
                 <EvidenceCenter
+                  key={incident.id}
                   evidence={incident.evidence}
                   requestedEvidenceId={requestedEvidenceId}
                   onRequestedEvidenceHandled={() => setRequestedEvidenceId(null)}
                   onReferenceToggle={toggleNoteEvidence}
                   referencedIds={incidentDraft.evidenceIds}
                 />
+                <HypothesesPanel key={incident.id} incidentId={incident.id} evidence={incident.evidence} onOpenEvidence={setRequestedEvidenceId} />
                 <NotesPanel
                   notes={notes}
                   evidence={incident.evidence}
@@ -351,6 +358,8 @@ export function App() {
             ) : <ErrorState title="No incidents available" message="The API returned no incident to investigate." />}
           </div>
           {incident && <InvestigationPanel
+            incidentId={incident.id}
+            evidence={incident.evidence}
             incidentTitle={incident.title}
             suggestedQuestions={incident.suggested_questions}
             config={config}
@@ -370,7 +379,7 @@ export function App() {
   )
 }
 
-function IncidentHeader({ incident, onInvestigate }: { incident: IncidentDetail; onInvestigate: () => void }) {
+function IncidentHeader({ incident, onInvestigate, onReviewHypotheses }: { incident: IncidentDetail; onInvestigate: () => void; onReviewHypotheses: () => void }) {
   const [pendingFormat, setPendingFormat] = useState<'markdown' | 'json' | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
   const exportRequestRef = useRef(0)
@@ -414,6 +423,7 @@ function IncidentHeader({ incident, onInvestigate }: { incident: IncidentDetail;
         <button type="button" aria-label="Download handoff as JSON" disabled={pendingFormat !== null} onClick={() => void downloadHandoff('json')}>{pendingFormat === 'json' ? <LoaderCircle className="spin" size={15} /> : <Braces size={15} />}JSON</button>
       </div>
       {exportError && <div className="handoff-export-error" role="alert"><span>{exportError}</span><button type="button" onClick={() => setExportError(null)}>Dismiss</button></div>}
+      <button type="button" className="secondary-button hypothesis-shortcut" onClick={onReviewHypotheses}>Review hypotheses</button>
       <button type="button" className="mobile-investigate-jump" onClick={onInvestigate}><SearchCheck size={16} aria-hidden="true" />Investigate this incident</button>
       {!!incident.evidence.some((item) => !item.trusted) && <div className="header-warning"><AlertTriangle size={15} aria-hidden="true" />Untrusted imported evidence is visible for inspection and excluded from answer context.</div>}
       {!!incident.tags.length && <div className="tag-list" aria-label="Incident tags">{incident.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>}

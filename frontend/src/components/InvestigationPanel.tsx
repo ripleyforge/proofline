@@ -15,9 +15,12 @@ import {
 import { useEffect, useId, useState } from 'react'
 import { downloadInvestigation } from '../api'
 import { formatDuration } from '../format'
-import type { Config, GenerationMode, Investigation, RetrievalStrategy } from '../types'
+import type { Config, Evidence, GenerationMode, Investigation, RetrievalStrategy } from '../types'
+import { RetrievalInspector } from './RetrievalInspector'
 
 interface InvestigationPanelProps {
+  incidentId: string
+  evidence: Evidence[]
   incidentTitle: string
   suggestedQuestions: string[]
   config: Config
@@ -31,6 +34,8 @@ interface InvestigationPanelProps {
 }
 
 export function InvestigationPanel({
+  incidentId,
+  evidence,
   incidentTitle,
   suggestedQuestions,
   config,
@@ -128,6 +133,8 @@ export function InvestigationPanel({
           {isRunning ? <><LoaderCircle className="spin" size={17} />Investigating</> : <><Send size={17} />Run investigation</>}
         </button>
       </form>
+
+      <RetrievalInspector key={`${incidentId}:${question}`} incidentId={incidentId} question={question} evidence={evidence} onOpenEvidence={onOpenEvidence} />
 
       {currentRun ? (
         <InvestigationResult run={currentRun} onOpenEvidence={onOpenEvidence} onExport={exportRun} exportError={exportError} />

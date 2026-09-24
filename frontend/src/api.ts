@@ -2,12 +2,16 @@ import type {
   Config,
   Evaluation,
   GenerationMode,
+  Hypothesis,
+  HypothesisInput,
+  HypothesisPage,
   IncidentDetail,
   IncidentSummary,
   Investigation,
   InvestigationPage,
   InvestigationStatus,
   Note,
+  RetrievalInspection,
   RetrievalStrategy,
 } from './types'
 
@@ -55,6 +59,15 @@ export const api = {
   notes: (incidentId: string) => request<Note[]>(`/incidents/${encodeURIComponent(incidentId)}/notes`),
   createNote: (incidentId: string, body: { body: string; evidence_ids: string[] }) =>
     request<Note>(`/incidents/${encodeURIComponent(incidentId)}/notes`, { method: 'POST', body: JSON.stringify(body) }),
+  hypotheses: (incidentId: string) => request<HypothesisPage>(`/incidents/${encodeURIComponent(incidentId)}/hypotheses`),
+  createHypothesis: (incidentId: string, body: HypothesisInput) =>
+    request<Hypothesis>(`/incidents/${encodeURIComponent(incidentId)}/hypotheses`, { method: 'POST', body: JSON.stringify(body) }),
+  updateHypothesis: (incidentId: string, id: string, body: HypothesisInput & { expected_revision: number }) =>
+    request<Hypothesis>(`/incidents/${encodeURIComponent(incidentId)}/hypotheses/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(body) }),
+  hypothesisRevisions: (incidentId: string, id: string) =>
+    request<HypothesisPage>(`/incidents/${encodeURIComponent(incidentId)}/hypotheses/${encodeURIComponent(id)}/revisions`),
+  inspectRetrieval: (incidentId: string, question: string) =>
+    request<RetrievalInspection>('/retrieval/inspect', { method: 'POST', body: JSON.stringify({ incident_id: incidentId, question }) }),
   evaluations: () => request<Evaluation[]>('/evaluations'),
   createEvaluation: (strategy: RetrievalStrategy) =>
     request<Evaluation>('/evaluations', { method: 'POST', body: JSON.stringify({ strategy }) }),

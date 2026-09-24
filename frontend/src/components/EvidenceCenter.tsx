@@ -1,8 +1,9 @@
-import { BookOpen, Filter, Search, ShieldAlert, X } from 'lucide-react'
+import { BookOpen, Columns2, Filter, Search, ShieldAlert, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { formatDateTime, formatTime } from '../format'
 import type { Evidence, EvidenceKind } from '../types'
 import { EmptyState, KindBadge, SectionHeading } from './Primitives'
+import { EvidenceComparison } from './EvidenceComparison'
 
 const kinds: EvidenceKind[] = ['metric', 'log', 'change', 'runbook', 'note']
 
@@ -18,13 +19,19 @@ export function EvidenceCenter({ evidence, requestedEvidenceId, onRequestedEvide
   const [activeKinds, setActiveKinds] = useState<Set<EvidenceKind>>(new Set(kinds))
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Evidence | null>(null)
+  const [comparisonIds, setComparisonIds] = useState<string[]>([])
+  const [comparing, setComparing] = useState(false)
   const drawerRef = useRef<HTMLElement>(null)
   const drawerCloseRef = useRef<HTMLButtonElement>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
+  const comparisonSources = comparisonIds.map((id) => evidence.find((item) => item.id === id)).filter((item): item is Evidence => !!item)
+  const closeComparison = useCallback(() => setComparing(false), [])
 
   const closeDrawer = useCallback(() => {
     setSelected(null)
-    window.setTimeout(() => triggerRef.current?.focus(), 0)
+    // Restore synchronously so a delayed callback cannot steal focus from
+    // the next source or comparison the investigator opens.
+    triggerRef.current?.focus()
   }, [])
 
   useEffect(() => {
@@ -103,6 +110,11 @@ export function EvidenceCenter({ evidence, requestedEvidenceId, onRequestedEvide
           {kinds.map((kind) => <button key={kind} type="button" className={activeKinds.has(kind) ? 'is-active' : ''} aria-pressed={activeKinds.has(kind)} onClick={() => toggleKind(kind)}>{kind}</button>)}
         </div>
       </div>
+      <div className="comparison-tray" aria-label="Evidence comparison selection">
+        <span><Columns2 size={15} aria-hidden="true" />Compare up to two sources</span>
+        {comparisonSources.length ? <div className="comparison-selected">{comparisonSources.map((source) => <span key={source.id}>{source.title}<button type="button" className="icon-button" aria-label={`Remove ${source.title} from comparison`} onClick={() => setComparisonIds((ids) => ids.filter((id) => id !== source.id))}><X size={13} /></button></span>)}</div> : <small>Open a source to add it.</small>}
+        <button type="button" className="secondary-button" disabled={comparisonSources.length !== 2} onClick={() => setComparing(true)}>Compare selected ({comparisonSources.length}/2)</button>
+      </div>
       {filtered.length ? (
         <ol className="timeline-list">
           {filtered.map((item) => (
@@ -139,6 +151,9 @@ export function EvidenceCenter({ evidence, requestedEvidenceId, onRequestedEvide
               <div className="evidence-body"><pre>{selected.body}</pre></div>
             </div>
             <div className="drawer-actions">
+              <button className="secondary-button" type="button" disabled={!comparisonIds.includes(selected.id) && comparisonIds.length >= 2} onClick={() => setComparisonIds((ids) => ids.includes(selected.id) ? ids.filter((id) => id !== selected.id) : [...ids, selected.id])}>
+                {comparisonIds.includes(selected.id) ? 'Remove from comparison' : comparisonIds.length >= 2 ? 'Comparison full (2 sources)' : 'Add to comparison'}
+              </button>
               <button className={referencedIds.includes(selected.id) ? 'secondary-button is-selected' : 'secondary-button'} type="button" onClick={() => onReferenceToggle(selected.id)}>
                 {referencedIds.includes(selected.id) ? 'Remove note reference' : 'Reference in note'}
               </button>
@@ -146,6 +161,7 @@ export function EvidenceCenter({ evidence, requestedEvidenceId, onRequestedEvide
           </aside>
         </div>
       )}
+      {comparing && <EvidenceComparison evidence={comparisonSources} onClose={closeComparison} />}
     </section>
   )
 }
