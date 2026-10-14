@@ -28,7 +28,7 @@ No real incident integrations, autonomous remediation, multi-user authentication
 - Unsupported questions and malicious evidence produce safe bounded behavior.
 - Data and exports survive restart; input is validated and parameterized.
 - Tests cover retrieval ranking, source isolation, claim validation, API/storage, provider failure, workflows, accessibility basics and responsive layout.
-- CI checks the shipped applications; repository stays private; working local release command, rollback path, concise demo and interview guide.
+- CI checks the shipped applications; reviewed synthetic source can be published under owner authorization; working local release command, rollback path, concise demo and interview guide.
 
 ## Career alignment
 

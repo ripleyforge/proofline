@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+from contextlib import closing
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -14,6 +15,7 @@ import tempfile
 import types
 import unittest
 import uuid
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -26,6 +28,15 @@ def load_package_module() -> types.ModuleType:
     spec = importlib.util.spec_from_file_location(name, ROOT / "scripts" / "package.py")
     if spec is None or spec.loader is None:
         raise RuntimeError("could not load scripts/package.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_bundle_checker() -> types.ModuleType:
+    spec = importlib.util.spec_from_file_location(
+        "proofline_bundle_check", ROOT / "scripts/check_bundle.py"
+    )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -90,7 +101,7 @@ class DeliveryToolTests(unittest.TestCase):
     def test_backup_reads_consistent_wal_state_and_preserves_committed_note(self) -> None:
         database = self.temporary / "live.sqlite3"
         output = self.temporary / "backups" / "snapshot.sqlite3"
-        with sqlite3.connect(database) as live:
+        with closing(sqlite3.connect(database)) as live, live:
             self.assertEqual(live.execute("PRAGMA journal_mode=WAL").fetchone()[0], "wal")
             live.execute("PRAGMA wal_autocheckpoint=0")
             live.execute("CREATE TABLE notes (id TEXT PRIMARY KEY, body TEXT NOT NULL)")
@@ -108,7 +119,7 @@ class DeliveryToolTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Verified backup:", result.stdout)
-        with sqlite3.connect(output) as backup:
+        with closing(sqlite3.connect(output)) as backup, backup:
             self.assertEqual(backup.execute("PRAGMA integrity_check").fetchone()[0], "ok")
             self.assertEqual(
                 backup.execute("SELECT id, body FROM notes").fetchall(),
@@ -122,7 +133,7 @@ class DeliveryToolTests(unittest.TestCase):
         self.assertIn("database does not exist", missing.stderr)
 
         database = self.temporary / "live.sqlite3"
-        with sqlite3.connect(database) as connection:
+        with closing(sqlite3.connect(database)) as connection, connection:
             connection.execute("CREATE TABLE marker (value TEXT)")
         output.write_bytes(b"preserve-existing-target")
         refused = self.run_backup(database, output)
@@ -201,6 +212,43 @@ class DeliveryToolTests(unittest.TestCase):
 
         with self.assertRaisesRegex(SystemExit, "Refusing non-regular package entry: linked-app.py"):
             package.build()
+
+    def test_bundle_launch_uses_packaged_resources_despite_host_overrides(self) -> None:
+        repository = self.make_repository()
+        package = load_package_module()
+        package.ROOT = repository
+        package.build()
+        checker = load_bundle_checker()
+        checker.ROOT = repository
+
+        class LaunchChecked(Exception):
+            pass
+
+        def inspect_launch(command, *, cwd, env, **kwargs):
+            # Verify the actual subprocess boundary, before any server/install runs.
+            self.assertEqual(Path(env["PROOFLINE_DATA_DIR"]), cwd / "data")
+            self.assertEqual(Path(env["PROOFLINE_FRONTEND_DIST"]), cwd / "frontend/dist")
+            self.assertTrue(Path(env["PROOFLINE_DB_PATH"]).is_relative_to(cwd.parent))
+            self.assertEqual(env["PROOFLINE_OLLAMA_MODEL"], "")
+            self.assertEqual(env["PROOFLINE_OLLAMA_URL"], "http://127.0.0.1:11435")
+            self.assertNotIn("PROOFLINE_DEV_ORIGIN", env)
+            raise LaunchChecked
+
+        overrides = {
+            "PROOFLINE_DATA_DIR": str(self.temporary / "outside-corpus"),
+            "PROOFLINE_FRONTEND_DIST": str(self.temporary / "outside-interface"),
+            "PROOFLINE_DB_PATH": str(self.temporary / "outside.sqlite3"),
+            "PROOFLINE_OLLAMA_URL": "http://invalid.example",
+            "PROOFLINE_OLLAMA_MODEL": "unwanted-model",
+            "PROOFLINE_DEV_ORIGIN": "http://invalid.example",
+        }
+        with (
+            patch.dict("os.environ", overrides),
+            patch.object(checker.subprocess, "run"),
+            patch.object(checker.subprocess, "Popen", side_effect=inspect_launch),
+        ):
+            with self.assertRaises(LaunchChecked):
+                checker.main()
 
 
 if __name__ == "__main__":

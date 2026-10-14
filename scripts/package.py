@@ -49,7 +49,7 @@ def build() -> Path:
     digest = hashlib.sha256(target.read_bytes()).hexdigest()
     target.with_suffix(target.suffix + ".sha256").write_text(f"{digest}  {target.name}\n")
     (ROOT / ".local/releases/latest.txt").write_text(str(target) + "\n")
-    print(f"Local bundle: {target}\nSHA-256: {digest}\nEntries: {len(files)} (no database, credentials or model files)")
+    print(f"Local bundle: {target}\nSHA-256: {digest}\nEntries: {len(files)} (tracked source and built interface; inspect MANIFEST.json before sharing)")
     return target
 
 
