@@ -8,7 +8,7 @@ A local React/TypeScript and Python application that helps an engineer examine o
 
 Candidate resume bullet, to use after reviewing and understanding the project:
 
-> Built a React/FastAPI incident workbench with explainable retrieval, source comparison, versioned analyst hypotheses, SQLite persistence, and browser-tested CI delivery; kept optional local AI behind scoped evidence and quote validation.
+> Directed AI-assisted development of a React/FastAPI incident workbench with explainable retrieval, versioned hypotheses, SQLite persistence, and browser-tested CI; separated deterministic extracts from optional local-model output with source/quote checks.
 
 Do not describe this as deployed AWS infrastructure, production customer usage, measured business savings, or proof that generated answers are factually correct. Actual test counts and local inference measurements are recorded separately in the verification report. Do not turn a fixture pass rate into a real-world accuracy claim.
 
@@ -31,6 +31,10 @@ For an associate solutions architect or delivery consultant, demonstrate how a c
 ## Development provenance
 
 This project was developed with AI coding agents for implementation, testing and review under a user-directed portfolio brief. Its architecture, code, commit history and verification are available for inspection. Before using it as interview evidence, run the demo, read the main flow and independently make a small change you can explain. Describe your own role accurately; do not claim personal manual authorship of every component.
+
+For January 2027 graduate/entry-level applications, this is strongest as evidence of application integration and system-design reasoning: typed UI/API contracts, explicit provider seams, SQL persistence, reproducible evaluation, and visible failure behavior. It supports conversations about applied AI or associate cloud/solutions roles, but does not establish production architecture ownership, model training expertise, or cloud operations experience. It contains no computer-vision component.
+
+Pair it with the separately documented Western Sugar Python pipelines, SQL Server analysis, SAP reconciliation reports, and Java scale-application modernization. Those describe workplace experience; Proofline describes a synthetic portfolio project. Discuss how you translated a workflow into requirements, chose boundaries, reviewed agent output, and verified delivery. Claim independent implementation or debugging only for work you personally performed and can substantiate. Graduation timing, citizenship/clearance, location, and compensation preferences belong in your application conversation; this repository does not prove hiring eligibility or salary outcomes.
 
 ## Suggested extension to own personally
 

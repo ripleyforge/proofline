@@ -1,7 +1,7 @@
 # Delivery ownership and zero-cost boundary
 
 Owner: Chase Ripley / Ripley Forge. Environment: local portfolio demo.
-Repository: `ripleyforge/proofline`, private. Resource owner is the same operator.
+Repository: `ripleyforge/proofline`. Resource owner is the same operator; source publication requires the owner's action-scoped authorization.
 Health: GitHub PR checks and `/api/health`; failures visible in Actions/UI.
 Rollback: revert a delivered commit via PR; for local app stop process, restore database backup, then run prior locally built release.
 Disable: stop local process; disable this repository's Actions workflows.
@@ -12,6 +12,8 @@ GitHub observations before initial repository creation (2026-09-21 UTC): organiz
 Operator authorization in task 01a0c24c-f805-7123-bf3d-8cbd940fae87 covers creating this private repository, incremental commits and full project delivery tonight, subject to no costs. Initial action: create private `ripleyforge/proofline` once; reconcile by exact repository name before retrying. Authority expires at task completion. This record does not authorize other repositories or paid resources.
 
 Local data belongs in ignored `.local/`. Synthetic seed files tracked; user notes, databases, model caches and release bundles are not.
+
+Source publication keeps the same local-only operating boundary. The owner's current publication task authorizes reviewed PR delivery and the exact `ripleyforge/proofline` visibility change after publication review and candidate gates. The action is recorded with the exact delivered revision and before/after provider readbacks; historical observations below remain historical. Reverting visibility cannot recall copies already obtained while public. The disable path is to restore private visibility and stop further distribution; verify owner permissions and the current visibility endpoint before the action. This authorizes no hosting, billing change, or other repository mutation.
 
 
 The follow-up improvement task authorizes implementation, incremental pushes,

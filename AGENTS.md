@@ -1,6 +1,6 @@
 # Proofline project router
 
-Proofline is a local incident investigation and evidence workbench for a fictional commerce operation. Owner: Chase Ripley / Ripley Forge. Portfolio project, private until the owner chooses publication. All example data is synthetic.
+Proofline is a local incident investigation and evidence workbench for a fictional commerce operation. Owner: Chase Ripley / Ripley Forge. Portfolio source publication does not authorize hosting the application. All example data is synthetic.
 
 ## Boundaries
 

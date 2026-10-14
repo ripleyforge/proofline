@@ -33,6 +33,8 @@ Handoffs are bounded selections, not backups. Use database backup/restore below 
 
 Run `python3 scripts/backup.py` while the app is running or stopped. It uses SQLite's backup API and runs an integrity check; copying a live WAL database by hand can lose data.
 
+The backup command defaults to `.local/proofline.sqlite3`; it does not read `PROOFLINE_DB_PATH`. If you started the app with a custom database, pass that same path explicitly: `python3 scripts/backup.py --database <your-database-path>`.
+
 To restore, stop Proofline and close every connection to its database. Make a backup of the current database first. Restore into a **new filename** to avoid mixing old WAL sidecars with restored data:
 
 ```sh
@@ -46,13 +48,13 @@ Confirm prior notes, run history and hypothesis revisions before treating restor
 
 The CI pipeline tests and builds a portable source-and-interface archive but uploads nothing. Run `python3 scripts/package.py` on a clean committed checkout to create the same archive locally. Its SHA-256 sidecar checks transport integrity; the internal manifest identifies each source/built file and the revision. It is not a cryptographic signature or a security certification.
 
-Extract the archive into a new folder. Run `uv sync --project backend --frozen --no-dev`, then `python3 scripts/serve.py`; the frontend is prebuilt, so Node is not needed just to run that bundle. Dependency installation still needs network/cache access. The model and database are never bundled.
+Extract the archive into a new folder. Run `uv sync --project backend --frozen --no-dev`, then `python3 scripts/serve.py`; the frontend is prebuilt, so Node is not needed just to run that bundle. Dependency installation still needs network/cache access. Packaging selects tracked files (except `.github/`) and regular built-interface files; default runtime databases and model files are outside that selection. Review `MANIFEST.json` before sharing: ignore rules do not protect a sensitive file that someone force-tracks or places in the build directory.
 
 For rollback, stop the app, retain/backup data, and run the previous verified bundle in its own folder with an explicit database path. Schema 2 adds hypothesis tables and preserves all schema-1 records. Back up a schema-1 database before its first schema-2 startup. An older application refuses a schema-2 database; to run an older bundle, use a separate restored pre-upgrade backup. Keep the schema-2 file to preserve newly created hypotheses and other later work. Do not downgrade or overwrite it in place.
 
 ## GitHub / cost operations
 
-Repository owner: Chase Ripley / Ripley Forge. The repository remains private. Health is the PR/main verification check. Feature branches land through a reviewed pull request. CI uses pinned GitHub actions with read-only token permissions and does not receive cloud secrets.
+Repository owner: Chase Ripley / Ripley Forge. Source visibility is read back from GitHub; it does not change the application's local-only boundary. Health is the PR/main verification check. Feature branches land through a reviewed pull request. CI uses pinned GitHub actions with read-only token permissions and does not receive cloud secrets.
 
 No AWS service, hosted model, runner upgrade, Actions cache or uploaded CI artifact is provisioned. An existing organization Actions budget of $0 with stop-spend enabled was checked before CI. Budget exhaustion must block work, not trigger a purchase or a plan change. Disable the repository workflow if future automation must stop. See append-only observations in `docs/operations/`.
 

@@ -6,7 +6,7 @@ Proofline is a local incident investigation workspace for a fictional commerce o
 
 All scenarios are synthetic. The complete core workflow needs no API key, model, account, or cloud service. Optional local AI uses an installed Ollama model; the default evidence-extraction mode is deterministic and is labeled accordingly.
 
-![Proofline incident workspace with synthetic service signals and evidence](docs/images/workspace.png)
+![Proofline incident workspace with synthetic service signals and evidence](docs/images/workspace.jpg)
 
 ## Start the demo
 
@@ -19,7 +19,7 @@ bash scripts/setup.sh
 python3 scripts/serve.py
 ```
 
-Open **http://127.0.0.1:8100**. Stop with Ctrl+C. The repository is currently private. On macOS, after setup, `Proofline.command` is also a launcher.
+Open **http://127.0.0.1:8100**. Stop with Ctrl+C. On macOS, after setup, `Proofline.command` is also a launcher.
 
 Choose an incident, open a source, and try a suggested question. The [five-minute walkthrough](docs/DEMO.md) covers the whole product.
 
@@ -36,7 +36,7 @@ Choose an incident, open a source, and try a suggested question. The [five-minut
 - Record competing hypotheses with supporting/challenging evidence, next checks, and immutable revision history.
 - Inspect why BM25 and focused retrieval select different sources, without invoking a model or saving another run.
 
-Preview the [evidence comparison](docs/images/evidence-comparison.png) and [searchable run history](docs/images/run-history.png), or follow the [demo walkthrough](docs/DEMO.md).
+Preview the [evidence comparison](docs/images/evidence-comparison.png), [evaluation lab](docs/images/evaluation-lab.jpg), and [searchable run history](docs/images/run-history.png), or follow the [demo walkthrough](docs/DEMO.md).
 
 Citation checks validate source identity, incident scope and exact quoted text. They do **not** prove that model prose follows from a quote or that a suspected cause is correct. The deterministic evaluation suite is not an LLM benchmark. See [evaluation design](docs/EVALUATION.md) and [security boundaries](docs/SECURITY.md).
 
@@ -103,3 +103,5 @@ After committing and passing checks, `python3 scripts/package.py` creates a chec
 The demo is single-user and loopback-only. Do not expose it through a tunnel or reverse proxy. A [future AWS mapping](docs/CLOUD-DESIGN.md) explains what would change for an approved hosted system; it is a design exercise, not a deployed architecture.
 
 [Verification results](docs/VERIFICATION.md) · [Portfolio and interview guide](docs/PORTFOLIO.md) · [Contributing](CONTRIBUTING.md)
+
+Development used AI coding agents under Chase Ripley's direction for implementation, tests, and review. The [portfolio guide](docs/PORTFOLIO.md#development-provenance) describes that attribution and the project's limits. No open-source license has been selected for Proofline's original code; bundled libraries and fonts retain their licenses in [third-party notices](THIRD_PARTY_NOTICES.md).

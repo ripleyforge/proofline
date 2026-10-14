@@ -32,8 +32,15 @@ def main():
             sock.bind(("127.0.0.1", 0))
             port = sock.getsockname()[1]
         env = os.environ.copy()
+        # A host's development overrides must not substitute its files for the bundle.
+        for name in tuple(env):
+            if name.startswith("PROOFLINE_"):
+                del env[name]
+        env["PROOFLINE_DATA_DIR"] = str(project / "data")
+        env["PROOFLINE_FRONTEND_DIST"] = str(project / "frontend/dist")
         env["PROOFLINE_DB_PATH"] = str(folder / "bundle-test.sqlite3")
         env["PROOFLINE_OLLAMA_MODEL"] = ""
+        env["PROOFLINE_OLLAMA_URL"] = "http://127.0.0.1:11435"
         command = ["uv", "run", "--project", str(project / "backend"), "--frozen", "--no-sync", "uvicorn", "proofline.app:create_app", "--factory", "--host", "127.0.0.1", "--port", str(port)]
         with (folder / "server.log").open("w") as log:
             server = subprocess.Popen(command, cwd=project, env=env, stdout=log, stderr=log)

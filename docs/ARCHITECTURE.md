@@ -33,7 +33,7 @@ Loopback, synthetic data, single user, bounded inputs, no telemetry or secrets. 
 
 ## Retrieval policy details
 
-Tokenization lowercases alphanumerics and removes a fixed stopword set. Both policies require at least 40% of meaningful query tokens to occur in one trusted source before admitting answer context. This conservative lexical threshold reduces incidental-overlap answers; it can reject valid paraphrases and does not establish semantic relevance. At most five sources are returned. Focused ranking boosts incident service/tag matches by 15% and explicit evidence-kind hints by 25%; priors never admit a zero-overlap source. These choices were developed against the authored scenarios and must be re-evaluated on new data.
+Tokenization lowercases alphanumerics and removes a fixed stopword set. Both policies require at least 40% of meaningful query tokens to occur in one trusted source before admitting the query. Once admitted, other trusted sources with positive overlap can enter the top five even if their individual coverage is below 40%. This conservative lexical gate can reject valid paraphrases and does not establish semantic relevance. Focused ranking boosts incident service/tag matches by 15% and explicit evidence-kind hints by 25%; priors never admit a zero-overlap source. These choices were developed against the authored scenarios and must be re-evaluated on new data.
 
 ## Reference documentation
 

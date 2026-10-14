@@ -1,6 +1,6 @@
 # Proofline continuation
 
-Complete v1 implementation and local acceptance are verified. Read README.md to run the app and docs/DEMO.md for the five-minute walkthrough. The private source is `ripleyforge/proofline`; GitHub PR/main checks identify the delivered revision. Main requires the application/browser CI check and a PR; no force pushes/deletion.
+Complete v1 implementation and local acceptance are verified. Read README.md to run the app and docs/DEMO.md for the five-minute walkthrough. The source is `ripleyforge/proofline`; GitHub PR/main checks identify the delivered revision. Main requires the application/browser CI check and a PR; no force pushes/deletion.
 
 The project has a React/TypeScript workspace, FastAPI service, SQLite persistence, four synthetic scenarios, deterministic retrieval/evaluations, optional installed local Ollama generation and verified local packaging/backup. The current improvement pass adds versioned analyst hypotheses, read-only retrieval inspection, source comparison, a conflicting-health scenario, and tab-scoped workspace continuity. Earlier searchable history and bounded handoffs remain. The automated suite contains 160 backend tests, 6 delivery tests, and 50 browser workflows, including hypothesis draft retention and pending-save reconciliation across navigation. See docs/VERIFICATION.md for observed runs and scope; independent reviews are under docs/reviews/.
 
